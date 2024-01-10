@@ -66,9 +66,6 @@ export default class Copy extends HTMLElement{
 				// Change The Copy Icon To Done
 				this.copyElement.innerHTML = "<x-icon color='var(--color-success)' name='done'></x-icon>";
 
-				// Show Toast
-				if(typeof window.Toast === "function") window.Toast.new("info", "Copied");
-
 				// Restore The Un-Clicked State
 				setTimeout(()=>{
 					// Enable The Copy Button
