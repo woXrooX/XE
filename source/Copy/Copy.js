@@ -1,3 +1,5 @@
+// v0.1.0
+
 "use strict";
 
 export default class Copy extends HTMLElement{
