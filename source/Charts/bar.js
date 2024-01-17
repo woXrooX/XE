@@ -1,6 +1,6 @@
 "use strict";
 
-export default class BarChart extends HTMLElement{
+export default class Bar extends HTMLElement{
   constructor(){
     super();
 
@@ -162,7 +162,7 @@ export default class BarChart extends HTMLElement{
 
 }
 
-window.customElements.define('x-bar-chart', BarChart);
+window.customElements.define('x-bar-chart', Bar);
 
-// Make BarChart Usable W/O Importing It
-window.BarChart = BarChart;
+// Make Bar Usable W/O Importing It
+window.Bar = Bar;

@@ -1,6 +1,6 @@
 "use strict";
 
-export default class LineChart extends HTMLElement{
+export default class Line extends HTMLElement{
   constructor(){
     super();
 
@@ -210,7 +210,7 @@ export default class LineChart extends HTMLElement{
 
 }
 
-window.customElements.define('x-line-chart', LineChart);
+window.customElements.define('x-line-chart', Line);
 
-// Make LineChart Usable W/O Importing It
-window.LineChart = LineChart;
+// Make Line Usable W/O Importing It
+window.Line = Line;
