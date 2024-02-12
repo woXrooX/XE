@@ -153,3 +153,6 @@ class PieChart extends HTMLElement{
 }
 
 window.customElements.define('x-pie-chart', PieChart);
+
+// Make Pie Usable W/O Importing It
+window.Pie = Pie;
