@@ -1,7 +1,7 @@
 "use strict";
 
 // Use Case
-{/* <x-chart-pie>
+{/* <x-pie-chart>
 	{
 		"width": "800",
 		"height": "500",
@@ -18,7 +18,7 @@
 		]
 	}
 
-</x-chart-pie> */}
+</x-pie-chart> */}
 
 class PieChart extends HTMLElement{ 
 	static template = document.createElement("template");
@@ -104,7 +104,7 @@ class PieChart extends HTMLElement{
 			
 			this.ctx.fillStyle = "black";
 			// this.ctx.font = "15px Arial";
-			this.ctx.fillText(data[entry]["value"], labelXValue, labelYValue);
+			this.ctx.fillText(`${Math.floor(value / totalValues * 100)}%`, labelXValue, labelYValue);
 		}
 
 	}
@@ -155,4 +155,4 @@ class PieChart extends HTMLElement{
 window.customElements.define('x-pie-chart', PieChart);
 
 // Make Pie Usable W/O Importing It
-window.Pie = Pie;
+window.PieChart = PieChart;
