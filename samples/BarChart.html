@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Bar Chart</title>
+	<style>
+		body{
+			background-color: hsla(230deg, 13%, 9%, 1);
+			color: white;
+		}
+	</style>
+	<script type="module" src="../source/Charts/Bar.js"></script>
+</head>
+<body>
+	<x-bar-chart>
+		{
+			"width": "800",
+			"height": "400",
+			"title":"Product Label",
+			"yAxis": {
+				"steps": 10
+			},
+			"data": [
+				{"name": "A", "value": 16, "color": "green"},
+				{"name": "B", "value": 67},
+				{"name": "C", "value": 10},
+				{"name": "D", "value": 85, "color": "grey"},
+				{"name": "E", "value": 47}
+			]
+		}
+	</x-bar-chart>
+</body>
+</html>
