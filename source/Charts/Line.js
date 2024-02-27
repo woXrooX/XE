@@ -51,6 +51,7 @@ export default class Line extends HTMLElement{
 
 	// APIs
 	#draw = ()=>{
+		// Minimal details
 		this.#updateColors();
 		this.#setUpCanvas();
 		this.#setValues();
@@ -58,6 +59,7 @@ export default class Line extends HTMLElement{
 
 		if("minimal" in this.#data && this.#data["minimal"] == true) return
 
+		// Fully detailed
 		this.#drawTitle();
 		this.#drawMainAxis();
 		this.#drawXLines();
