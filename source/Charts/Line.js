@@ -2,6 +2,11 @@ export default class Line extends HTMLElement{
 	#data;
 	#canvas;
 	#ctx;
+
+	#textColor = "black";
+	#gridColor = "gray";
+	#mainAxisColor ="black";
+
 	#padding = 50;
 	#paddings;
 	#minValue = Infinity;
@@ -24,17 +29,18 @@ export default class Line extends HTMLElement{
 		this.#data = JSON.parse(this.innerHTML);
 		this.#parentElement = this.parentNode;
 
+		// Style
 		const style = document.createElement('style');
 		style.textContent = `
 			canvas{
 				max-width: 100vw;
 				max-height: 100vh;
-
-				border-radius: var(--radius);
-				box-shadow: var(--shadow);
 			}
 		`;
 		this.shadow.appendChild(style);
+
+		// Marker count Y axis
+		if("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
 
 		this.shadow.appendChild(document.createElement("canvas"));
 		this.#canvas = this.shadow.querySelector("canvas");
@@ -45,22 +51,22 @@ export default class Line extends HTMLElement{
 
 	// APIs
 	#draw = ()=>{
+		this.#updateColors();
 		this.#setUpCanvas();
 		this.#setValues();
 		this.#drawLines();
 
-		if(this.#parentElement.clientWidth > 600){
-			this.#drawTitle();
-			this.#drawMainAxis();
-			this.#drawXLines();
-			this.#drawYLines();
-			this.#drawCircle();
-			this.#drawMarkersXAxis();
-			this.#drawMarkersYAxis();
-			this.#drawLegends();
-		}
-	}
+		if("minimal" in this.#data && this.#data["minimal"] == true) return
 
+		this.#drawTitle();
+		this.#drawMainAxis();
+		this.#drawXLines();
+		this.#drawYLines();
+		this.#drawCircle();
+		this.#drawMarkersXAxis();
+		this.#drawMarkersYAxis();
+		this.#drawLegends();
+	}
 
 	////// Helpers
 	#resizeObserver(){
@@ -68,9 +74,15 @@ export default class Line extends HTMLElement{
 		resizeObserver.observe(this.#parentElement);
 	}
 
+	#updateColors(){
+		this.#textColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+		this.#gridColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary");
+		this.#mainAxisColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+	}
+
 	#setUpCanvas(){
 		this.#canvas.width = this.#parentElement.clientWidth;
-		this.#canvas.height = this.#parentElement.clientHeight;
+		this.#canvas.height = this.#parentElement.clientWidth / 2;
 		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
 	}
 
@@ -93,14 +105,14 @@ export default class Line extends HTMLElement{
 			left: this.#padding
 		};
 
-		this.#gapXAxis = this.#paddings.right / this.#longestDataset;
+		this.#gapXAxis = (this.#paddings.right - this.#padding) / (this.#longestDataset - 1);
 		this.#gapYAxis = (this.#paddings.bottom - this.#padding) / (this.#markerCountYAxis - 1);
 
 		this.#YAxisStepValue = (this.#maxValue - this.#minValue) / (this.#markerCountYAxis - 1);
 	}
 
 	#drawTitle(){
-		this.#ctx.fillStyle = "black";
+		this.#ctx.fillStyle = this.#textColor;
 		this.#ctx.textAlign = "center";
 		this.#ctx.font = "bold 16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
 		this.#ctx.fillText(this.#data.title, this.#canvas.width / 2, this.#paddings.top / 2);
@@ -112,13 +124,13 @@ export default class Line extends HTMLElement{
 		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = '#35374B';
+		this.#ctx.strokeStyle = this.#mainAxisColor;
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
 
 	#drawXLines(){
-		this.#ctx.strokeStyle = '#35374B';
+		this.#ctx.strokeStyle = this.#gridColor;
 		this.#ctx.lineWidth = this.#gridLineWidth;
 
 		for (let i = 0; i < this.#markerCountYAxis; i++) {
@@ -130,7 +142,7 @@ export default class Line extends HTMLElement{
 	}
 
 	#drawYLines(){
-		this.#ctx.strokeStyle = '#35374B';
+		this.#ctx.strokeStyle = this.#gridColor;
 		this.#ctx.lineWidth = this.#gridLineWidth;
 
 		for(let i = 0; i < this.#longestDataset; i++){
@@ -152,7 +164,7 @@ export default class Line extends HTMLElement{
 
 			this.#ctx.beginPath();
 			this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom - (values[0] - this.#minValue) * scaleY);
-			this.#ctx.strokeStyle = this.#data["data"][i]["color"];
+			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? this.#textColor;
 
 			for(let j = 0; j < values.length; j++){
 				const x = j * this.#gapXAxis + this.#padding;
@@ -174,7 +186,7 @@ export default class Line extends HTMLElement{
 				const x = j * this.#gapXAxis + this.#padding;
 				const y = this.#paddings.bottom - (values[j] - this.#minValue) * scaleY;
 				this.#ctx.beginPath();
-				this.#ctx.fillStyle = this.#data["data"][i]["color"];
+				this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#textColor;
 				this.#ctx.arc(x, y, this.#circleRad, 0, Math.PI * 2);
 				this.#ctx.fill();
 			}
@@ -187,7 +199,7 @@ export default class Line extends HTMLElement{
 
 			this.#ctx.textAlign = "center";
 			this.#ctx.font = " 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-			this.#ctx.fillStyle = "black";
+			this.#ctx.fillStyle = this.#textColor;
 			this.#ctx.fillText(i, x, this.#paddings.bottom + this.#markerSize * 2.5);
 		}
 	}
@@ -195,9 +207,10 @@ export default class Line extends HTMLElement{
 	#drawMarkersYAxis(){
 		for(let i = 0; i < this.#markerCountYAxis; i++){
 			this.#ctx.textAlign = "right";
+			this.#ctx.fillStyle = this.#textColor;
 			this.#ctx.font = " 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
 			this.#ctx.textBaseline = "middle";
-			this.#ctx.fillText(this.#maxValue - i * this.#YAxisStepValue, this.#paddings.left - this.#markerSize * 2.5, i * this.#gapYAxis + this.#padding);
+			this.#ctx.fillText((this.#maxValue - i * this.#YAxisStepValue).toFixed(1), this.#paddings.left - this.#markerSize * 1.5, i * this.#gapYAxis + this.#padding);
 		}
 	}
 
