@@ -1,45 +1,45 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Line Chart</title>
-	<style>
-		body{
-			background-color: hsla(230deg, 13%, 9%, 1);
-			color: white;
-		}
-	</style>
-	<script type="module" src="../source/Charts/line-v2.js"></script>
-</head>
-<body>
-	<x-line-chart>
-		{
-			"title":"Line Graph",
-			"yAxis": {
-				"markerCount": 10
-			},
-			"xAxis": {
-				"labels": ["a", "b", "c", "d", "e", "f"]
-			},
-			"data": [
-				{
-					"label": "A",
-					"color": "#ff6384",
-					"values": [50, 20, 0, 40, 70, 60, 90, 80, 50, 200, -60, -250, 400]
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Line Chart</title>
+		<style>
+			body{
+				background-color: hsla(230deg, 13%, 9%, 1);
+				color: white;
+			}
+		</style>
+		<script type="module" src="../source/Charts/Line.js"></script>
+	</head>
+	<body>
+		<x-line-chart>
+			{
+				"title":"Line Graph",
+				"yAxis": {
+					"markerCount": 10
 				},
-				{
-					"label": "B",
-					"color": "#36a2eb",
-					"values": [150, 50, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
+				"xAxis": {
+					"labels": ["a", "b", "c", "d", "e", "f"]
 				},
-				{
-					"label": "C",
-					"color": "#ffce56",
-					"values": [-50, 70, 20, 90, 150, 120, 180, 200, 170, 160, 140, 130, 110]
-				}
-			]
-		}
-	</x-line-chart>
-</body>
+				"data": [
+					{
+						"label": "Apple",
+						"color": "#ff6384",
+						"values": [50, 20, 0, 40, 70, 60, 90, 80, 50, 200, -60, -250, 400]
+					},
+					{
+						"label": "Nvidia",
+						"color": "#36a2eb",
+						"values": [150, 50, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
+					},
+					{
+						"label": "Microsoft",
+						"color": "#ffce56",
+						"values": [-50, 70, 20, 90, 150, 120, 180, 200, 170, 160, 140, 130, 110]
+					}
+				]
+			}
+		</x-line-chart>
+	</body>
 </html>
