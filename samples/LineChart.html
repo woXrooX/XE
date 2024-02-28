@@ -5,9 +5,18 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Line Chart</title>
 		<style>
+			:root{
+				--color-text-primary: black;
+				--color-text-secondary: grey;
+			}
+
 			body{
 				background-color: hsla(230deg, 13%, 9%, 1);
 				color: white;
+				height: 100dvh;
+
+				display: grid;
+				place-items: center;
 			}
 			div{
 				background-color: aliceblue;
@@ -17,15 +26,28 @@
 		<script type="module" src="../source/Charts/Line.js"></script>
 	</head>
 	<body>
-		<div>			
+		<div>
 			<x-line-chart>
 				{
 					"title":"Line Graph",
-					"lineBackground": false,
+					"animations": false,
+					"tooltip": false,
+					"legends": true,
+					"dataPoints": true,
+					"fillType": "gradient",
+					"grid": {
+						"horizontal": true,
+						"vertical": true,
+						"color": "red"
+					},
 					"yAxis": {
+						"label": true,
+						"color": "red",
 						"markerCount": 10
 					},
 					"xAxis": {
+						"label": true,
+						"color": "red",
 						"labels": ["a", "b", "c", "d", "e", "f"]
 					},
 					"data": [
@@ -35,14 +57,14 @@
 							"values": [150, 50, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
 						},
 						{
-							"label": "Apple",
-							"color": "#36a2eb",
-							"values": [50, 20, 0, 40, 70, 60, 90, 80, 50, 200, -60, -250, 400]
-						},
-						{
 							"label": "Microsoft",
 							"color": "#ffce56",
 							"values": [-50, 70, 20, 90, 150, 120, 180, 200, 170, 160, 140, 130, 110]
+						},
+						{
+							"label": "Apple",
+							"color": "#36a2eb",
+							"values": [50, 20, 0, 40, 70, 60, 90, 80, 50, 200, -60, -250, 400]
 						}
 					]
 				}
@@ -50,5 +72,3 @@
 		</div>
 	</body>
 </html>
-
-
