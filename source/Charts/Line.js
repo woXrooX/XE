@@ -6,6 +6,7 @@ export default class Line extends HTMLElement{
 	#textColor = "black";
 	#gridColor = "gray";
 	#mainAxisColor ="black";
+	#fontSize = 11;
 
 	#padding = 50;
 	#paddings;
@@ -42,6 +43,10 @@ export default class Line extends HTMLElement{
 
 			div{
 				pointer-events: none;
+
+				font-size: ${this.#fontSize}px;
+				color: white;
+
 				opacity: 0;
 				background: rgba(0, 0, 0, 0.7);
 				border-radius: 4px;
@@ -259,6 +264,7 @@ export default class Line extends HTMLElement{
 
 	#drawTooltip(){ this.#canvas.addEventListener("mousemove", this.#handleMouseMove); }
 
+
 	#handleMouseMove = (event)=>{
 		const rect = this.#canvas.getBoundingClientRect();
 		const mouseX = event.clientX - rect.left;
@@ -420,7 +426,7 @@ export default class Line extends HTMLElement{
 
 			this.#ctx.textBaseline = "top";
 			this.#ctx.textAlign = "left";
-			this.#ctx.font = "bold 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
+			this.#ctx.font = `bold ${this.#fontSize}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;
 			this.#ctx.fillText(this.#data["data"][i]["label"], startX + gap, posY);
 
 			startX += rectWidth + this.#ctx.measureText(this.#data["data"][i]["label"]).width + gap;
