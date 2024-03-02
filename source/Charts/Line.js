@@ -22,6 +22,8 @@ export default class Line extends HTMLElement{
 	#gridLineWidth = 0.1;
 	#parentElement = null;
 
+	#tooltipElement = null;
+
 
 	constructor(){
 		super();
@@ -30,12 +32,24 @@ export default class Line extends HTMLElement{
 		this.#data = JSON.parse(this.innerHTML);
 		this.#parentElement = this.parentNode;
 
-		// Style
+		// Style element
 		const style = document.createElement('style');
 		style.textContent = `
 			canvas{
 				max-width: 100vw;
 				max-height: 100vh;
+			}
+
+			div{
+				pointer-events: none;
+				opacity: 0;
+				background: rgba(0, 0, 0, 0.7);
+				border-radius: 4px;
+				box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.5);
+				transition: 0.3s ease-in-out;
+				transition-property: opacity, background, top, left;
+				position: absolute;
+				padding: 4px 8px;
 			}
 		`;
 		this.shadow.appendChild(style);
@@ -43,9 +57,14 @@ export default class Line extends HTMLElement{
 		// Marker count Y axis
 		if("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
 
+		// Canvas element
 		this.shadow.appendChild(document.createElement("canvas"));
 		this.#canvas = this.shadow.querySelector("canvas");
 		this.#ctx = this.#canvas.getContext('2d');
+
+		// Tooltip element
+		this.shadow.appendChild(document.createElement("div"));
+		this.#tooltipElement = this.shadow.querySelector("div");
 
 		this.#resizeObserver();
 	}
@@ -82,8 +101,7 @@ export default class Line extends HTMLElement{
 		this.#drawLines();
 		if("dataPoints" in this.#data && this.#data["dataPoints"] === true) this.#drawCircle();
 
-		// Called tooltip function
-		this.#drawTooltip();
+		if("tooltip" in this.#data && this.#data["tooltip"] === true) this.#drawTooltip();
 	}
 
 	////// Helpers
@@ -224,6 +242,75 @@ export default class Line extends HTMLElement{
 		}
 	}
 
+	#drawCircle(){
+		for (let i = 0; i < this.#data["data"].length; i++) {
+			const values = this.#data["data"][i]["values"];
+
+			for(let j = 0; j < values.length; j++){
+				const x = j * this.#gapXAxis + this.#padding;
+				const y = this.#paddings.bottom - (values[j] - this.#minValue) * this.#scaleY;
+				this.#ctx.beginPath();
+				this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#textColor;
+				this.#ctx.arc(x, y, this.#circleRad, 0, Math.PI * 2);
+				this.#ctx.fill();
+			}
+		}
+	}
+
+	#drawTooltip(){ this.#canvas.addEventListener("mousemove", this.#handleMouseMove); }
+
+	#handleMouseMove = (event)=>{
+		const rect = this.#canvas.getBoundingClientRect();
+		const mouseX = event.clientX - rect.left;
+		const mouseY = event.clientY - rect.top;
+
+		const { data, values, positionX, positionY } = this.#findTooltipData(mouseX, mouseY);
+
+		if(data !== null && values !== null) this.#showTooltip(data, values, positionX, positionY, rect);
+		else this.#tooltipElement.style.opacity = 0;;
+	}
+
+	#findTooltipData(mouseX, mouseY){
+		let data = null, values = null, positionX = null, positionY = null;
+
+		for(let i = 0; i < this.#data["data"].length; i++){
+			for(let j = 0; j < this.#data["data"][i]["values"].length; j++){
+				const dotX = j * this.#gapXAxis + this.#padding;
+				const dotY = this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#minValue) * this.#scaleY;
+
+				const dx = mouseX - dotX;
+				const dy = mouseY - dotY;
+				const distance = Math.sqrt(dx ** 2 + dy ** 2);
+				const activationRadius = this.#circleRad * 3;
+
+				if(distance <= activationRadius){
+					data = i;
+					values = j;
+					positionX = dotX;
+					positionY = dotY;
+					break;
+				}
+			}
+		}
+
+		return { data, values, positionX, positionY };
+	}
+
+	#showTooltip(data, values, x, y, canvasRect) {
+		const tooltipWidth = this.#tooltipElement.offsetWidth;
+		const tooltipHeight = this.#tooltipElement.offsetHeight;
+		const canvasLeft = canvasRect.left + window.pageXOffset;
+		const canvasTop = canvasRect.top + window.pageYOffset;
+
+		this.#tooltipElement.innerHTML = this.#data["data"][data]["values"][values];
+
+		this.#tooltipElement.style = `
+			opacity: 1;
+			left: ${canvasLeft + x - tooltipWidth / 2}px;
+			top: ${canvasTop + y - tooltipHeight - 15}px;
+		`;
+	}
+
 	#drawColoredBackground(){
 		for(let i = 0; i < this.#data["data"].length; i++){
 			const values = this.#data["data"][i]["values"];
@@ -248,112 +335,6 @@ export default class Line extends HTMLElement{
 			this.#ctx.fill();
 		}
 		this.#ctx.globalAlpha = 1
-	}
-
-	#drawCircle(){
-		for (let i = 0; i < this.#data["data"].length; i++) {
-			const values = this.#data["data"][i]["values"];
-
-			for(let j = 0; j < values.length; j++){
-				const x = j * this.#gapXAxis + this.#padding;
-				const y = this.#paddings.bottom - (values[j] - this.#minValue) * this.#scaleY;
-				this.#ctx.beginPath();
-				this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#textColor;
-				this.#ctx.arc(x, y, this.#circleRad, 0, Math.PI * 2);
-				this.#ctx.fill();
-			}
-		}
-	}
-
-	#drawTooltip() {
-		this.#canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
-	}
-
-	handleMouseMove(e) {
-		const rect = this.#canvas.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
-
-		const { data, values, positionX, positionY } = this.findTooltipData(mouseX, mouseY);
-		
-		if (data !== null && values !== null) {
-			this.#showTooltip(data, values, positionX, positionY, rect);
-		} else {
-			this.#hideTooltip();
-		}
-	}
-
-	findTooltipData(mouseX, mouseY) {
-		let data = null, values = null, positionX = null, positionY = null;
-
-		for (let i = 0; i < this.#data["data"].length; i++) {
-			for (let j = 0; j < this.#data["data"][i]["values"].length; j++) {
-				const dotX = j * this.#gapXAxis + this.#padding;
-				const dotY = this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#minValue) * this.#scaleY;
-
-				const dx = mouseX - dotX;
-				const dy = mouseY - dotY;
-				const distance = Math.sqrt(dx ** 2 + dy ** 2);
-				const activationRadius = this.#circleRad * 3;
-
-				if (distance <= activationRadius) {
-					data = i;
-					values = j;
-					positionX = dotX;
-					positionY = dotY;
-					break;
-				}
-			}
-		}
-
-		return { data, values, positionX, positionY };
-	}
-
-	#showTooltip(data, values, x, y, canvasRect) {
-		let tooltipEl = this.getOrCreateTooltipElement();
-		
-		tooltipEl.style.opacity = 1;
-		tooltipEl.style.border = `2px solid ${this.#data["data"][data]["color"] ?? this.#textColor}`;
-		tooltipEl.style.background = "rgba(0, 0, 0, 0.7)";
-		tooltipEl.style.borderRadius = "4px";
-		tooltipEl.style.transition = "all 0.3s ease";
-		tooltipEl.style.position = "absolute";
-
-		const tooltipWidth = tooltipEl.offsetWidth;
-		const tooltipHeight = tooltipEl.offsetHeight;
-		const canvasLeft = canvasRect.left + window.pageXOffset;
-		const canvasTop = canvasRect.top + window.pageYOffset;
-
-
-		tooltipEl.style.left = `${canvasLeft + x - tooltipWidth / 2}px`;
-		tooltipEl.style.top = `${canvasTop + y - tooltipHeight - 10}px`;
-
-		const tooltipUl = tooltipEl.querySelector('.toolTipUl');
-		tooltipUl.style.listStyle = "none"
-		tooltipUl.style.padding = "1px 3px"
-		tooltipUl.style.margin = 0
-
-		tooltipUl.innerHTML = `<li>${this.#data["data"][data]["values"][values]}</li>`;
-	}
-
-	getOrCreateTooltipElement() {
-		let tooltipEl = this.#ctx.canvas.parentNode.querySelector('div.toolTipDesign');
-
-		if (!tooltipEl) {
-			tooltipEl = document.createElement("div");
-			tooltipEl.classList.add('toolTipDesign');
-			tooltipEl.innerHTML = '<ul class="toolTipUl"></ul>';
-			this.#canvas.parentNode.appendChild(tooltipEl);
-		}
-
-		return tooltipEl;
-	}
-
-	#hideTooltip() {
-		let tooltipEl = this.#ctx.canvas.parentNode.querySelector('div.toolTipDesign');
-		if (tooltipEl) {
-			tooltipEl.style.opacity = 0;
-		}
 	}
 
 	#drawOpacityOrPlainBackground(){
