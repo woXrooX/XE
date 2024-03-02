@@ -250,36 +250,6 @@ export default class Line extends HTMLElement{
 		this.#ctx.globalAlpha = 1
 	}
 
-	#drawGradientBackground(){
-		let maxNums = []
-
-		for(let i = 0; i < this.#data["data"].length; i++){
-			const values = this.#data["data"][i]["values"];
-			maxNums.push(Math.max(...this.#data["data"][i]["values"]))
-			console.log(maxNums[i]);
-
-			this.#ctx.beginPath();
-			let gradient = this.#ctx.createLinearGradient(this.#padding, this.#paddings.top - maxNums[i], this.#padding, this.#paddings.bottom)
-			gradient.addColorStop(0, this.#data["data"][i]["color"])
-			gradient.addColorStop(1, "rgba(255, 255, 255, 0")
-			this.#ctx.fillStyle = gradient;
-			this.#ctx.globalAlpha = 1
-
-			for(let j = 0; j <= values.length; j++){
-				const x = j * this.#gapXAxis + this.#padding;
-				const y = this.#paddings.bottom - (values[j] - this.#minValue) * this.#scaleY;
-				this.#ctx.lineTo(x, y);
-				if (j == values.length) {
-					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
-					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
-					this.#ctx.closePath()
-				}
-			}
-			this.#ctx.fill();
-		}
-		this.#ctx.globalAlpha = 1
-	}
-
 	#drawCircle(){
 		for (let i = 0; i < this.#data["data"].length; i++) {
 			const values = this.#data["data"][i]["values"];
