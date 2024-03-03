@@ -23,9 +23,6 @@ export default class Line extends HTMLElement{
 	#gridLineWidth = 0.1;
 	#parentElement = null;
 
-	#tooltipElement = null;
-
-
 	constructor(){
 		super();
 
@@ -40,22 +37,6 @@ export default class Line extends HTMLElement{
 				max-width: 100vw;
 				max-height: 100vh;
 			}
-
-			div{
-				pointer-events: none;
-
-				font-size: ${this.#fontSize}px;
-				color: white;
-
-				opacity: 0;
-				background: rgba(0, 0, 0, 0.7);
-				border-radius: 4px;
-				box-shadow: 0px 2px 5px 0px rgba(0, 0, 0, 0.5);
-				transition: 0.3s ease-in-out;
-				transition-property: opacity, background, top, left;
-				position: absolute;
-				padding: 4px 8px;
-			}
 		`;
 		this.shadow.appendChild(style);
 
@@ -66,10 +47,6 @@ export default class Line extends HTMLElement{
 		this.shadow.appendChild(document.createElement("canvas"));
 		this.#canvas = this.shadow.querySelector("canvas");
 		this.#ctx = this.#canvas.getContext('2d');
-
-		// Tooltip element
-		this.shadow.appendChild(document.createElement("div"));
-		this.#tooltipElement = this.shadow.querySelector("div");
 
 		this.#resizeObserver();
 	}
@@ -105,8 +82,6 @@ export default class Line extends HTMLElement{
 
 		this.#drawLines();
 		if("dataPoints" in this.#data && this.#data["dataPoints"] === true) this.#drawCircle();
-
-		if("tooltip" in this.#data && this.#data["tooltip"] === true) this.#drawTooltip();
 	}
 
 	////// Helpers
@@ -262,61 +237,6 @@ export default class Line extends HTMLElement{
 		}
 	}
 
-	#drawTooltip(){ this.#canvas.addEventListener("mousemove", this.#handleMouseMove); }
-
-
-	#handleMouseMove = (event)=>{
-		const rect = this.#canvas.getBoundingClientRect();
-		const mouseX = event.clientX - rect.left;
-		const mouseY = event.clientY - rect.top;
-
-		const { data, values, positionX, positionY } = this.#findTooltipData(mouseX, mouseY);
-
-		if(data !== null && values !== null) this.#showTooltip(data, values, positionX, positionY, rect);
-		else this.#tooltipElement.style.opacity = 0;;
-	}
-
-	#findTooltipData(mouseX, mouseY){
-		let data = null, values = null, positionX = null, positionY = null;
-
-		for(let i = 0; i < this.#data["data"].length; i++){
-			for(let j = 0; j < this.#data["data"][i]["values"].length; j++){
-				const dotX = j * this.#gapXAxis + this.#padding;
-				const dotY = this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#minValue) * this.#scaleY;
-
-				const dx = mouseX - dotX;
-				const dy = mouseY - dotY;
-				const distance = Math.sqrt(dx ** 2 + dy ** 2);
-				const activationRadius = this.#circleRad * 3;
-
-				if(distance <= activationRadius){
-					data = i;
-					values = j;
-					positionX = dotX;
-					positionY = dotY;
-					break;
-				}
-			}
-		}
-
-		return { data, values, positionX, positionY };
-	}
-
-	#showTooltip(data, values, x, y, canvasRect) {
-		const tooltipWidth = this.#tooltipElement.offsetWidth;
-		const tooltipHeight = this.#tooltipElement.offsetHeight;
-		const canvasLeft = canvasRect.left + window.pageXOffset;
-		const canvasTop = canvasRect.top + window.pageYOffset;
-
-		this.#tooltipElement.innerHTML = this.#data["data"][data]["values"][values];
-
-		this.#tooltipElement.style = `
-			opacity: 1;
-			left: ${canvasLeft + x - tooltipWidth / 2}px;
-			top: ${canvasTop + y - tooltipHeight - 15}px;
-		`;
-	}
-
 	#drawColoredBackground(){
 		for(let i = 0; i < this.#data["data"].length; i++){
 			const values = this.#data["data"][i]["values"];
@@ -367,6 +287,8 @@ export default class Line extends HTMLElement{
 	}
 
 	#drawGradientBackground(){
+		this.#ctx.globalAlpha = 0.5;
+
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
 
@@ -397,6 +319,8 @@ export default class Line extends HTMLElement{
 			}
 			this.#ctx.fill();
 		}
+
+		this.#ctx.globalAlpha = 1;
 	}
 
 	#drawLegends(){
