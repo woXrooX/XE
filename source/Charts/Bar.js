@@ -1,168 +1,321 @@
-"use strict";
+export default class Bar extends HTMLElement {
+	#data;
+	#canvas;
+	#ctx;
+	
+	#textColor = "black";
+	#mainAxisColor = "black";
+	#fontSize = 11;
+	
+	#padding = 50;
+	#paddings;
+	#minValue = Infinity;
+	#maxValue = -Infinity;
+	#gapYAxis = 0;
+	#scaleY;
+	#markerSize = 10;
+	#markerCountYAxis = 10;
+	#YAxisStepValue;
+	#parentElement = null;
 
-export default class Bar extends HTMLElement{
-  constructor(){
-    super();
+	#ValuesArr = []
+	#barWidth = 0;
+	#barGap = 0;
+	#total_width_of_bars = 0;
+	
+	constructor() {
+		super();
+		
+		this.shadow = this.attachShadow({ mode: 'closed' });
+		this.#data = JSON.parse(this.innerHTML);
+		this.#parentElement = this.parentNode;
+		
+		// Style element
+		const style = document.createElement('style');
+		style.textContent = `
+			canvas{
+				max-width: 100vw;
+				max-height: 100vh;
+			}
+		`;
+		this.shadow.appendChild(style);
+		
+		// Marker count Y axis
+		if ("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
+		
+		// Canvas element
+		this.shadow.appendChild(document.createElement("canvas"));
+		this.#canvas = this.shadow.querySelector("canvas");
+		this.#ctx = this.#canvas.getContext('2d');
+		
+		this.#resizeObserver();
+	}
+	
+	// APIs
+	#draw = () => {
+		this.#updateColors();
+		this.#setUpCanvas();
+		this.#setValues();
+		
+		this.#drawTitle();
+		
+		if ("legends" in this.#data && this.#data["legends"] === true) this.#drawLegends();
+		
+		if ("yAxis" in this.#data && "label" in this.#data["yAxis"] && this.#data["yAxis"]["label"]) {
+			this.#drawMainYAxis();
+			this.#drawMainXAxis();
 
-    // Closed
-    this.shadow = this.attachShadow({mode: 'closed'});
+			this.#drawMarkersYAxis();
+		}
 
-    CSS: {
-      const style = document.createElement('style');
-      style.textContent = `
-        canvas{
-          width: auto;
-          height: auto;
+		if ("yAxisLines" in this.#data && this.#data["yAxisLines"] === true) this.#drawXLines()
+		
+		this.#drawBars();
+		this.#drawTooltip();
+	}
+	
+	////// Helpers
+	#resizeObserver() {
+		const resizeObserver = new ResizeObserver(this.#draw);
+		resizeObserver.observe(this.#parentElement);
+	}
+	
+	#updateColors() {
+		this.#textColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+		this.#mainAxisColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+	}
+	
+	#setUpCanvas() {
+		this.#canvas.width = this.#parentElement.clientWidth;
+		this.#canvas.height = this.#parentElement.clientWidth / 2;
+		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+	}
+	
+	#setValues() {
+		if (this.#ValuesArr.length === 0) {
+			for (let i = 0; i < this.#data["data"].length; i++) {
+				this.#ValuesArr.push(this.#data["data"][i]["value"])
+			}
+		}
+		
+		this.#minValue = Math.min(...this.#ValuesArr);
+		this.#maxValue = Math.max(...this.#ValuesArr);
+		
+		this.#paddings = {
+			top: this.#padding,
+			right: this.#canvas.width - this.#padding,
+			bottom: this.#canvas.height - this.#padding,
+			left: this.#padding
+		};
 
-          border-radius: var(--radius);
-          box-shadow: var(--shadow);
-        }
-      `;
-      this.shadow.appendChild(style);
-    }
+		this.#gapYAxis = (this.#paddings.bottom - this.#padding) / (this.#markerCountYAxis - 1);
+		this.#scaleY = (this.#canvas.height - this.#padding * 2) / (this.#maxValue - this.#minValue);
 
-    ///// Data
-    this.data = JSON.parse(this.innerHTML);
-    // Max Value
-    this.maxValue = 0;
-    for(const entry of this.data.data) if(entry["value"] > this.maxValue) this.maxValue = entry["value"];
+		this.#YAxisStepValue = (this.#maxValue - this.#minValue) / (this.#markerCountYAxis - 1);
 
-    ///// Canvas
-    this.canvas = document.createElement("canvas");
-    this.shadow.appendChild(this.canvas);
+		this.#barWidth = this.#canvas.width / 15;
+		this.#barGap = this.#barWidth / 15;
+		this.#total_width_of_bars = (this.#barWidth + this.#barGap) * (this.#ValuesArr.length + 1) + this.#padding;
+	}
+	
+	#drawTitle() {
+		this.#ctx.fillStyle = this.#textColor;
+		this.#ctx.textAlign = "center";
+		this.#ctx.font = "bold 16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
+		this.#ctx.fillText(this.#data.title, this.#canvas.width / 2, this.#paddings.top / 2);
+	}
+	
+	#drawMainXAxis(){
+		this.#ctx.beginPath();
 
-    this.canvas.width = this.data["width"];
-    this.canvas.height = this.data["height"];
+		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
+		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
-    // Context
-    this.ctx = this.canvas.getContext("2d");
-    // Canvas properties
-    this.padding = 80;
-    this.paddingLeft = this.padding * 1.5;
-    this.paddingRight = this.padding * 0.5;
-    this.width = this.canvas.width;
-    this.height = this.canvas.height;
+		this.#ctx.strokeStyle = this.#mainAxisColor;
+		this.#ctx.lineWidth = 1;
+		this.#ctx.stroke();
+	}
+	
+	#drawMainYAxis() {
+		this.#ctx.beginPath();
+		
+		let startY = this.#paddings.top;
+		let endY = this.#paddings.bottom;
+		
+		this.#ctx.moveTo(this.#paddings.left, startY);
+		this.#ctx.lineTo(this.#paddings.left, endY);
+		
+		this.#ctx.strokeStyle = this.#mainAxisColor;
+		this.#ctx.lineWidth = 1;
+		this.#ctx.stroke();
+	}
+	
+	#drawMarkersYAxis(){
+		for(let i = 0; i < this.#markerCountYAxis; i++){
+			this.#ctx.textAlign = "right";
+			this.#ctx.fillStyle = this.#textColor;
+			this.#ctx.font = " 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
+			this.#ctx.textBaseline = "middle";
+			this.#ctx.fillText((this.#maxValue - i * this.#YAxisStepValue).toFixed(1), this.#paddings.left - this.#markerSize * 1.5, i * this.#gapYAxis + this.#padding);
+		}
+	}
 
-    ///// Main X,Y axes
-    this.mainAxisLinesWidth = 2;
-    this.gridLinesWidth = 0.5;
+	#drawXLines(){
+		this.#ctx.strokeStyle = "gray";
+		this.#ctx.lineWidth = 0.5;
 
-    ///// Title
-    this.titleFontSize = "2rem";
-    this.titleFont = "Quicksand";
+		for (let i = 0; i < this.#markerCountYAxis; i++) {
+			this.#ctx.beginPath();
+			this.#ctx.moveTo(this.#paddings.left - this.#markerSize, this.#gapYAxis * i + this.#padding);
+			this.#ctx.lineTo(this.#paddings.right, this.#gapYAxis * i + this.#padding);
+			this.#ctx.stroke();
+		}
+	}
+	
+	#drawBars() {
+		for (let i = 0; i < this.#ValuesArr.length; i++) {
 
-    ///// X lines
-    this.xLinesCount = this.data.yAxis.steps || 5;
-    this.xLinesGap = (this.height - (this.padding * 2)) / (this.xLinesCount);
+			let y = this.#paddings.bottom - (this.#ValuesArr[i] - this.#minValue) * this.#scaleY;
 
-    ///// Bar
-    this.barCount = this.data.data.length;
-    // As bars get more, the gap gets bigger which leads to smaller bars
-    this.barGap = 40 + (this.width / this.barCount / 100);
-    this.barWidth = ((this.width - this.paddingLeft - this.paddingRight) / this.barCount) - this.barGap;
-    this.barNameFontSize = "0.6rem";
-    this.barNameFont = "Quicksand";
-    this.barValueFontSize = "0.6rem";
-    this.barValueFont = "Quicksand";
-  }
+			let height;
+			this.#minValue > 0 ? height = (this.#ValuesArr[i] - this.#minValue) * this.#scaleY : height = (this.#ValuesArr[i]) * this.#scaleY;
 
-  connectedCallback(){this.#drawAll();}
+			const x = (i * this.#barWidth + this.#padding) + (this.#canvas.width / 2) - (this.#total_width_of_bars / 2);
 
-  ///// Helpers
-  #drawBackground(){
-    this.ctx.fillStyle = window.CSS.getValue("--color-main-tint-9");
-    this.ctx.fillRect(0, 0, this.width, this.height);
-  }
+			this.#ctx.beginPath()
+			this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? "#DAE6E5";
+			this.#ValuesArr[i] == this.#minValue ? y = y - this.#barGap : y
+			
+			this.#ctx.roundRect(x + this.#barGap, y, this.#barWidth - this.#barGap, height - this.#barGap, this.#barGap * 2); 
+			this.#ctx.fill()
+		}
+	}
 
-  #drawXLines(){
-    for(let i = 0; i < this.xLinesCount + 1; i++){
-      // Draw x axis lines
-      this.ctx.beginPath();
-      this.ctx.moveTo(this.paddingLeft - 10, this.height - this.padding - (this.xLinesGap * i));
-      this.ctx.lineTo(this.width - this.paddingRight, this.height - this.padding - (this.xLinesGap * i));
-      this.ctx.lineWidth = this.gridLinesWidth;
-      this.ctx.strokeStyle = window.CSS.getValue("--color-main");
-      this.ctx.stroke();
+	
+	#drawLegends() {
+		const posY = this.#paddings.bottom + this.#padding / 2;
 
-      ///// Draw Heigts
-      // Percentage
-      const percentageOfHeights = i / this.xLinesCount * 100;
+		let startX = this.#paddings.left;
 
-      // Value
-      const maxValueByPercentage = this.maxValue * percentageOfHeights / 100;
+		for (let i = 0; i < this.#data["data"].length; i++) startX = this.#ctx.measureText(this.#data["data"][i]["label"]).width + (this.#barWidth / 2) + (this.#canvas.width / 2) - (this.#total_width_of_bars / 2);
 
-      // Draw Bar Values
-      this.ctx.font = `${this.barValueFontSize} ${this.barValueFont}`;
-      this.ctx.textBaseline = "middle";
-      this.ctx.textAlign = "right";
-      this.ctx.fillStyle = window.CSS.getValue("--color-main");
-      this.ctx.fillText(
-        `${maxValueByPercentage.toFixed(1)} (${percentageOfHeights.toFixed(1)}%)`,
-        this.paddingLeft - 20,
-        this.height - this.padding - (this.xLinesGap * i)
-      );
-    }
-  }
+		this.#ctx.save()
+		for (let i = 0; i < this.#data["data"].length; i++) {
+			this.#ctx.textBaseline = "center";
+			this.#ctx.textAlign = "center";
+			this.#ctx.font = `bold ${this.#fontSize}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;;
+			this.#ctx.fillText(this.#data["data"][i]["label"], startX, posY);
+			
 
-  #drawBars(){
-    for(const i in this.data.data){
-      // Draw bars
-      const barHeight = ((this.height - (this.padding * 2)) * this.data.data[i]["value"]) / this.maxValue;
-      const saturation = (((this.data.data[i]["value"] / this.maxValue) * (80 - 10)) + 10);
-      const barStartsAtX = (this.barGap / 2) + this.paddingLeft + ((this.barGap + this.barWidth) * i);
+			startX += this.#barWidth;
+		}
+	}
 
-      this.ctx.fillStyle = this.data.data[i]["color"] || `hsl(${window.CSS.getValue("--color-main-hue")}, ${saturation}%, 10%)`;
-      this.ctx.fillRect(
-        barStartsAtX,
-        this.height - this.padding - barHeight,
-        this.barWidth,
-        barHeight
-      );
+	#drawTooltip() {
+		this.#canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
+	}
 
-      // Draw names
-      this.ctx.font = `${this.barNameFontSize} ${this.barNameFont}`;
-      this.ctx.textBaseline = "middle";
-      this.ctx.textAlign = "center";
-      this.ctx.fillStyle = window.CSS.getValue("--color-main");
-      this.ctx.fillText(
-        this.data.data[i]["name"] || "Unknown",
-        barStartsAtX + (this.barWidth / 2),
-        this.height - (this.padding / 1.2)
-      );
-    }
-  }
+	handleMouseMove(e) {
+		const rect = this.#canvas.getBoundingClientRect();
+		const mouseX = e.clientX - rect.left;
+		const mouseY = e.clientY - rect.top;
 
-  #drawMainAxis(){
-    this.ctx.beginPath();
-    this.ctx.moveTo(this.paddingLeft, this.padding);
+		const { mouse_in_position, data, pos_x, pos_y, bar_height} = this.getTooltipData(mouseX, mouseY);
 
-    this.ctx.lineTo(this.paddingLeft, this.height - this.padding);
-    this.ctx.lineTo(this.width - this.paddingRight, this.height - this.padding);
+		if (mouse_in_position !== undefined && data !== null) {
+			this.#showTooltip(data, pos_x, pos_y, rect, bar_height);
+		} else {
+			this.#hideTooltip();
+		}
+	}
 
-    this.ctx.lineWidth = this.mainAxisLinesWidth;
-    this.ctx.strokeStyle = window.CSS.getValue("--color-main");
-    this.ctx.stroke();
-  }
+	getTooltipData(mouseX, mouseY) {
+		let mouse_in_position, data, pos_x, pos_y, bar_height;
 
-  #drawTitle(){
-    this.ctx.font = `${this.titleFontSize} ${this.titleFont}`;
-    this.ctx.textBaseline = "middle";
-    this.ctx.textAlign = "center";
-    this.ctx.fillStyle = window.CSS.getValue("--color-main");
-    this.ctx.fillText(this.data.title, this.width / 2, this.padding / 2);
-  }
+		for (let i = 0; i < this.#ValuesArr.length; i++) {
+			
+			const y = this.#paddings.bottom - (this.#ValuesArr[i] - this.#minValue) * this.#scaleY;
 
-  #drawAll(){
-    this.#drawBackground();
-    this.#drawXLines();
-    this.#drawBars();
-    this.#drawMainAxis();
-    this.#drawTitle();
-  };
+			const x = (i * this.#barWidth + this.#padding) + (this.#canvas.width / 2) - (this.#total_width_of_bars / 2);
+			
+			let height;
+			this.#minValue > 0 ? height = (this.#ValuesArr[i] - this.#minValue) * this.#scaleY : height = (this.#ValuesArr[i]) * this.#scaleY;
+			
+			let condition;
+			this.#ValuesArr[i] > 0 ? condition = mouseY >= y && mouseY <= y + height: condition = mouseY <= y && mouseY >= y + height
 
+			if (mouseX >= x && mouseX <= x + this.#barWidth && condition) {
+				mouse_in_position = true,
+				data = this.#ValuesArr[i],
+				pos_x = x,
+				pos_y = y,
+				bar_height = height
+			}
+		}
+		return { mouse_in_position, data, pos_x, pos_y, bar_height}
+	}
+
+	#showTooltip(data, x, y, canvasRect, height) {
+
+		let tooltipEl = this.getOrCreateTooltipElement();
+
+		tooltipEl.style.opacity = 1;
+		tooltipEl.style.border = `2px solid #222`;
+		tooltipEl.style.background = "rgba(0, 0, 0, 0.7)";
+		tooltipEl.style.borderRadius = "4px";
+		tooltipEl.style.transition = "all 0.3s ease";
+		tooltipEl.style.position = "absolute";
+
+		const tooltipWidth = tooltipEl.offsetWidth;
+		const tooltipHeight = tooltipEl.offsetHeight;
+		const canvasLeft = canvasRect.left;
+		let canvasTop = canvasRect.top;
+		canvasTop == 44 ? canvasTop = 0 : canvasTop
+
+
+		tooltipEl.style.left = `${canvasLeft + x + this.#barWidth / 2 - tooltipWidth / 2}px`;
+		
+		let top;
+		data > 0 ? top = `${canvasTop + y - tooltipHeight - 10}px`: top = `${canvasTop + y - tooltipHeight - 20 + height}px`
+		
+		tooltipEl.style.top = top;
+
+		tooltipEl.style.listStyle = "none"
+		tooltipEl.style.padding = "1px 3px"
+		tooltipEl.style.margin = 0
+
+		tooltipEl.innerHTML = `<li>${data}</li>`;
+
+		this.#drawBars()
+
+		this.#ctx.beginPath()
+		this.#ctx.globalAlpha = 1;
+
+		this.#ctx.fillStyle = "#BCC7C6";
+		data == this.#minValue ? y = y - this.#barGap : y
+		this.#ctx.roundRect(x + this.#barGap, y, this.#barWidth - this.#barGap, height - this.#barGap, this.#barGap * 2);
+		this.#ctx.fill()
+	}
+
+	getOrCreateTooltipElement() {
+		let tooltipEl = this.#ctx.canvas.parentNode.querySelector('div');
+
+		if (!tooltipEl) {
+			tooltipEl = document.createElement("div");
+			this.#canvas.parentNode.appendChild(tooltipEl);
+		}
+
+		return tooltipEl;
+	}
+
+	#hideTooltip() {
+		let tooltipEl = this.#ctx.canvas.parentNode.querySelector('div');
+		if (tooltipEl) {
+			tooltipEl.style.opacity = 0;
+		}
+
+		this.#drawBars()
+	}
+	
 }
-
-window.customElements.define('x-bar-chart', Bar);
-
-// Make Bar Usable W/O Importing It
-window.Bar = Bar;
+	window.customElements.define('x-bar-chart', Bar);
