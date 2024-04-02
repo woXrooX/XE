@@ -17,59 +17,67 @@
 
 				display: grid;
 				place-items: center;
+				overflow: hidden;
 			}
 			div{
 				background-color: aliceblue;
 				width: 90vw;
 			}
 		</style>
-		<script type="module" src="../source/Charts/Line.js"></script>
+		<script type="module" src="../source/Charts/Bar.js"></script>
 	</head>
 	<body>
 		<div>
-			<x-line-chart>
+			<x-bar-chart>
 				{
-					"title":"Line Graph",
-					"animations": false,
+					"title":"Bar Graph",
 					"legends": true,
-					"dataPoints": true,
-					"fillType": "gradient",
 					"grid": {
-						"horizontal": true,
-						"vertical": true,
-						"color": "red"
+						"horizontal": true
 					},
 					"xAxis": {
-						"label": true,
-						"color": "red",
-						"labels": ["a", "b", "c", "d", "e", "f"]
+						"label": true
 					},
 					"yAxis": {
 						"label": true,
-						"color": "red",
 						"markerCount": 10
 					},
 					"data": [
 						{
 							"label": "Nvidia",
-							"color": "#ff6384 ",
-							"values": [150, 50, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
+							"value": 150
 						},
 						{
 							"label": "Microsoft",
-							"color": "#ffce56",
-							"values": [-50, 70, 20, 90, 150, 120, 180, 200, 170, 160, 140, 130, 110]
+							"value": 90
 						},
 						{
 							"label": "Apple",
-							"color": "#36a2eb",
-							"values": [50, 20, 0, 40, 70, 60, 90, 80, 50, 200, -60, -250, 400]
+							"value": 200
+						},
+						{
+							"label": "Apple",
+							"value": 150
+						},
+						{
+							"label": "Apple",
+							"value": 50
+						},
+						{
+							"label": "Apple",
+							"value": 70
+						},
+						{
+							"label": "Apple",
+							"value": 190
+						},
+						{
+							"label": "Apple",
+							"value": 50
 						}
 					]
 				}
-			</x-line-chart>
+			</x-bar-chart>
 		</div>
 	</body>
 </html>
-
-

@@ -40,9 +40,6 @@ export default class Line extends HTMLElement{
 		`;
 		this.shadow.appendChild(style);
 
-		// Marker count Y axis
-		if("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
-
 		// Canvas element
 		this.shadow.appendChild(document.createElement("canvas"));
 		this.#canvas = this.shadow.querySelector("canvas");
@@ -51,7 +48,12 @@ export default class Line extends HTMLElement{
 		this.#resizeObserver();
 	}
 
-	// APIs
+	////// APIs
+	#resizeObserver(){
+		const resizeObserver = new ResizeObserver(this.#draw);
+		resizeObserver.observe(this.#parentElement);
+	}
+
 	#draw = ()=>{
 		this.#updateColors();
 		this.#setUpCanvas();
@@ -85,11 +87,6 @@ export default class Line extends HTMLElement{
 	}
 
 	////// Helpers
-	#resizeObserver(){
-		const resizeObserver = new ResizeObserver(this.#draw);
-		resizeObserver.observe(this.#parentElement);
-	}
-
 	#updateColors(){
 		this.#textColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
 		this.#gridColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary");
@@ -103,6 +100,9 @@ export default class Line extends HTMLElement{
 	}
 
 	#setValues(){
+		// Marker count Y axis
+		if("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
+
 		// Finding min max
 		for(let i = 0; i < this.#data["data"].length; i++){
 			const min = Math.min(...this.#data["data"][i]["values"]);
