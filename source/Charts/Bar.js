@@ -21,7 +21,7 @@ export default class Bar extends HTMLElement {
 	#ValuesArr = []
 	#barWidth = 0;
 	#barGap = 0;
-	#total_width_of_bars = 0;
+	#barRadius = 0;
 	
 	constructor() {
 		super();
@@ -47,8 +47,8 @@ export default class Bar extends HTMLElement {
 		this.shadow.appendChild(document.createElement("canvas"));
 		this.#canvas = this.shadow.querySelector("canvas");
 		this.#ctx = this.#canvas.getContext('2d');
-		
-		this.#resizeObserver();
+
+		this.#resizeObserver()
 	}
 	
 	// APIs
@@ -71,14 +71,14 @@ export default class Bar extends HTMLElement {
 		if ("yAxisLines" in this.#data && this.#data["yAxisLines"] === true) this.#drawXLines()
 		
 		this.#drawBars();
-		this.#drawTooltip();
 	}
-	
-	////// Helpers
+
 	#resizeObserver() {
 		const resizeObserver = new ResizeObserver(this.#draw);
 		resizeObserver.observe(this.#parentElement);
 	}
+	
+		
 	
 	#updateColors() {
 		this.#textColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
@@ -97,6 +97,7 @@ export default class Bar extends HTMLElement {
 				this.#ValuesArr.push(this.#data["data"][i]["value"])
 			}
 		}
+
 		
 		this.#minValue = Math.min(...this.#ValuesArr);
 		this.#maxValue = Math.max(...this.#ValuesArr);
@@ -109,20 +110,22 @@ export default class Bar extends HTMLElement {
 		};
 
 		this.#gapYAxis = (this.#paddings.bottom - this.#padding) / (this.#markerCountYAxis - 1);
-		this.#scaleY = (this.#canvas.height - this.#padding * 2) / (this.#maxValue - this.#minValue);
+		this.#scaleY = (this.#canvas.height - this.#padding * 2) / this.#maxValue;
 
-		this.#YAxisStepValue = (this.#maxValue - this.#minValue) / (this.#markerCountYAxis - 1);
+		this.#YAxisStepValue = this.#maxValue / (this.#markerCountYAxis - 1);
 
-		this.#barWidth = this.#canvas.width / 15;
-		this.#barGap = this.#barWidth / 15;
-		this.#total_width_of_bars = (this.#barWidth + this.#barGap) * (this.#ValuesArr.length + 1) + this.#padding;
+		this.#barGap = this.#parentElement.clientWidth * 0.01;
+		this.#barRadius = this.#parentElement.clientWidth * 0.02;
+		this.#barWidth = (this.#paddings.right - this.#barGap - this.#paddings.left) / this.#ValuesArr.length;
 	}
 	
 	#drawTitle() {
+		this.#ctx.beginPath()
 		this.#ctx.fillStyle = this.#textColor;
 		this.#ctx.textAlign = "center";
 		this.#ctx.font = "bold 16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
 		this.#ctx.fillText(this.#data.title, this.#canvas.width / 2, this.#paddings.top / 2);
+
 	}
 	
 	#drawMainXAxis(){
@@ -175,19 +178,16 @@ export default class Bar extends HTMLElement {
 	#drawBars() {
 		for (let i = 0; i < this.#ValuesArr.length; i++) {
 
-			let y = this.#paddings.bottom - (this.#ValuesArr[i] - this.#minValue) * this.#scaleY;
+			const x = i * this.#barWidth + this.#barGap + this.#padding;
+			let y = this.#paddings.bottom - (this.#ValuesArr[i]) * this.#scaleY;
 
-			let height;
-			this.#minValue > 0 ? height = (this.#ValuesArr[i] - this.#minValue) * this.#scaleY : height = (this.#ValuesArr[i]) * this.#scaleY;
-
-			const x = (i * this.#barWidth + this.#padding) + (this.#canvas.width / 2) - (this.#total_width_of_bars / 2);
+			let height = (this.#ValuesArr[i]) * this.#scaleY;
 
 			this.#ctx.beginPath()
 			this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? "#DAE6E5";
-			this.#ValuesArr[i] == this.#minValue ? y = y - this.#barGap : y
-			
-			this.#ctx.roundRect(x + this.#barGap, y, this.#barWidth - this.#barGap, height - this.#barGap, this.#barGap * 2); 
+			this.#ctx.roundRect(x, y + 1, this.#barWidth - this.#barGap, height - 2, this.#barRadius); 
 			this.#ctx.fill()
+			this.#ctx.closePath()
 		}
 	}
 
@@ -195,127 +195,14 @@ export default class Bar extends HTMLElement {
 	#drawLegends() {
 		const posY = this.#paddings.bottom + this.#padding / 2;
 
-		let startX = this.#paddings.left;
-
-		for (let i = 0; i < this.#data["data"].length; i++) startX = this.#ctx.measureText(this.#data["data"][i]["label"]).width + (this.#barWidth / 2) + (this.#canvas.width / 2) - (this.#total_width_of_bars / 2);
-
-		this.#ctx.save()
 		for (let i = 0; i < this.#data["data"].length; i++) {
+			let startX = i * this.#barWidth + this.#barWidth/2 + this.#padding;
 			this.#ctx.textBaseline = "center";
-			this.#ctx.textAlign = "center";
 			this.#ctx.font = `bold ${this.#fontSize}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;;
-			this.#ctx.fillText(this.#data["data"][i]["label"], startX, posY);
+			this.#ctx.fillText(this.#data["data"][i]["label"], startX + this.#barGap/2, posY);
 			
-
 			startX += this.#barWidth;
 		}
 	}
-
-	#drawTooltip() {
-		this.#canvas.addEventListener("mousemove", this.handleMouseMove.bind(this));
-	}
-
-	handleMouseMove(e) {
-		const rect = this.#canvas.getBoundingClientRect();
-		const mouseX = e.clientX - rect.left;
-		const mouseY = e.clientY - rect.top;
-
-		const { mouse_in_position, data, pos_x, pos_y, bar_height} = this.getTooltipData(mouseX, mouseY);
-
-		if (mouse_in_position !== undefined && data !== null) {
-			this.#showTooltip(data, pos_x, pos_y, rect, bar_height);
-		} else {
-			this.#hideTooltip();
-		}
-	}
-
-	getTooltipData(mouseX, mouseY) {
-		let mouse_in_position, data, pos_x, pos_y, bar_height;
-
-		for (let i = 0; i < this.#ValuesArr.length; i++) {
-			
-			const y = this.#paddings.bottom - (this.#ValuesArr[i] - this.#minValue) * this.#scaleY;
-
-			const x = (i * this.#barWidth + this.#padding) + (this.#canvas.width / 2) - (this.#total_width_of_bars / 2);
-			
-			let height;
-			this.#minValue > 0 ? height = (this.#ValuesArr[i] - this.#minValue) * this.#scaleY : height = (this.#ValuesArr[i]) * this.#scaleY;
-			
-			let condition;
-			this.#ValuesArr[i] > 0 ? condition = mouseY >= y && mouseY <= y + height: condition = mouseY <= y && mouseY >= y + height
-
-			if (mouseX >= x && mouseX <= x + this.#barWidth && condition) {
-				mouse_in_position = true,
-				data = this.#ValuesArr[i],
-				pos_x = x,
-				pos_y = y,
-				bar_height = height
-			}
-		}
-		return { mouse_in_position, data, pos_x, pos_y, bar_height}
-	}
-
-	#showTooltip(data, x, y, canvasRect, height) {
-
-		let tooltipEl = this.getOrCreateTooltipElement();
-
-		tooltipEl.style.opacity = 1;
-		tooltipEl.style.border = `2px solid #222`;
-		tooltipEl.style.background = "rgba(0, 0, 0, 0.7)";
-		tooltipEl.style.borderRadius = "4px";
-		tooltipEl.style.transition = "all 0.3s ease";
-		tooltipEl.style.position = "absolute";
-
-		const tooltipWidth = tooltipEl.offsetWidth;
-		const tooltipHeight = tooltipEl.offsetHeight;
-		const canvasLeft = canvasRect.left;
-		let canvasTop = canvasRect.top;
-		canvasTop == 44 ? canvasTop = 0 : canvasTop
-
-
-		tooltipEl.style.left = `${canvasLeft + x + this.#barWidth / 2 - tooltipWidth / 2}px`;
-		
-		let top;
-		data > 0 ? top = `${canvasTop + y - tooltipHeight - 10}px`: top = `${canvasTop + y - tooltipHeight - 20 + height}px`
-		
-		tooltipEl.style.top = top;
-
-		tooltipEl.style.listStyle = "none"
-		tooltipEl.style.padding = "1px 3px"
-		tooltipEl.style.margin = 0
-
-		tooltipEl.innerHTML = `<li>${data}</li>`;
-
-		this.#drawBars()
-
-		this.#ctx.beginPath()
-		this.#ctx.globalAlpha = 1;
-
-		this.#ctx.fillStyle = "#BCC7C6";
-		data == this.#minValue ? y = y - this.#barGap : y
-		this.#ctx.roundRect(x + this.#barGap, y, this.#barWidth - this.#barGap, height - this.#barGap, this.#barGap * 2);
-		this.#ctx.fill()
-	}
-
-	getOrCreateTooltipElement() {
-		let tooltipEl = this.#ctx.canvas.parentNode.querySelector('div');
-
-		if (!tooltipEl) {
-			tooltipEl = document.createElement("div");
-			this.#canvas.parentNode.appendChild(tooltipEl);
-		}
-
-		return tooltipEl;
-	}
-
-	#hideTooltip() {
-		let tooltipEl = this.#ctx.canvas.parentNode.querySelector('div');
-		if (tooltipEl) {
-			tooltipEl.style.opacity = 0;
-		}
-
-		this.#drawBars()
-	}
-	
 }
 	window.customElements.define('x-bar-chart', Bar);
