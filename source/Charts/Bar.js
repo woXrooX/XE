@@ -56,7 +56,6 @@ export default class Bar extends HTMLElement {
 		this.#updateColors();
 		this.#setUpCanvas();
 		this.#setValues();
-		
 		this.#drawTitle();
 		
 		if ("legends" in this.#data && this.#data["legends"] === true) this.#drawLegends();
