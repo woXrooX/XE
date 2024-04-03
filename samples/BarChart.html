@@ -31,21 +31,32 @@
 			<x-bar-chart>
 				{
 					"title":"Bar Graph",
-					"legends": true,
+					"fillType": "opacity",
+					"bar": {
+						"radius": 20,
+						"values": true
+					},
 					"grid": {
-						"horizontal": true
+						"horizontal": true,
+						"color": "orange"
 					},
 					"xAxis": {
-						"label": true
+						"line": false,
+						"markers": true,
+						"color": "blue"
 					},
 					"yAxis": {
-						"label": true,
-						"markerCount": 10
+						"line": false,
+						"title": "Teest",
+						"markers": true,
+						"markerCount": 10,
+						"color": "red"
 					},
 					"data": [
 						{
 							"label": "Nvidia",
-							"value": 150
+							"value": 150,
+							"color": "red"
 						},
 						{
 							"label": "Microsoft",
@@ -53,11 +64,12 @@
 						},
 						{
 							"label": "Apple",
-							"value": 200
+							"value": 200,
+							"color": "green"
 						},
 						{
 							"label": "Apple",
-							"value": 150
+							"value": 270
 						},
 						{
 							"label": "Apple",
