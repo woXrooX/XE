@@ -30,49 +30,61 @@
 		<div>
 			<x-bar-chart>
 				{
-					"title":"Bar Graph",
-					"legends": true,
+					"title":"Bar Chart",
+					"fillType": "opacity",
+					"bar": {
+						"radius": 10,
+						"values": true
+					},
 					"grid": {
-						"horizontal": true
+						"horizontal": true,
+						"color": "orange"
 					},
 					"xAxis": {
-						"label": true
+						"line": true,
+						"markers": true,
+						"color": "blue"
 					},
 					"yAxis": {
-						"label": true,
-						"markerCount": 10
+						"line": true,
+						"title": "Y Axis Title",
+						"markers": true,
+						"markerCount": 10,
+						"color": "red"
 					},
 					"data": [
 						{
-							"label": "Nvidia",
-							"value": 150
+							"label": "A",
+							"value": 150,
+							"color": "red"
 						},
 						{
-							"label": "Microsoft",
+							"label": "B",
 							"value": 90
 						},
 						{
-							"label": "Apple",
-							"value": 200
+							"label": "C",
+							"value": 200,
+							"color": "green"
 						},
 						{
-							"label": "Apple",
-							"value": 150
+							"label": "D",
+							"value": 270
 						},
 						{
-							"label": "Apple",
+							"label": "E",
 							"value": 50
 						},
 						{
-							"label": "Apple",
+							"label": "F",
 							"value": 70
 						},
 						{
-							"label": "Apple",
+							"label": "G",
 							"value": 190
 						},
 						{
-							"label": "Apple",
+							"label": "H",
 							"value": 50
 						}
 					]
