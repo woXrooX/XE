@@ -6,23 +6,17 @@
 "use strict";
 
 export default class Images extends HTMLElement{
-	#ARRAY = [];
+	#JSON = {};
 
 	constructor(){
 		super();
-
-		// Save the JSON data
-		this.#ARRAY = JSON.parse(this.innerHTML);
-
-		// Clean up
+		this.#JSON = JSON.parse(this.innerHTML).constructor === Object ? JSON.parse(this.innerHTML) : {};
 		this.replaceChildren();
-
-		// Closed
 		this.shadow = this.attachShadow({mode: 'closed'});
 
 		DOM: {
 			let imgs = "";
-			for(const img of this.#ARRAY) imgs += `<div><img src="${img}"></div>`;
+			for(const img of this.#JSON["images"]) imgs += `<div><img src="${img}"></div>`;
 			this.shadow.innerHTML = `<main>${imgs}</main>`;
 		}
 
@@ -30,15 +24,30 @@ export default class Images extends HTMLElement{
 			const style = document.createElement('style');
 			style.textContent = `
 				main{
+					/* Disable scrollbar START */
+					-ms-overflow-style: none; /* IE and Edge */
+					scrollbar-width: none; /* Firefox */
+
+					&::-webkit-scrollbar{
+						display: none;
+					}
+					/* Disable scrollbar END */
+
 					& > :first-child{
-						cursor: pointer;
 						transform: scale(1);
+
+						& > img{
+							width: ${this.#JSON["width"] ?? "auto"};
+							height: ${this.#JSON["height"] ?? "auto"};
+							object-fit: ${this.#JSON["height"] ?? "initial"};
+						}
 					}
 
 					& > div{
-						transform: scale(0);
+						cursor: pointer;
 						width: 0px;
 						height: 0px;
+						transform: scale(0);
 					}
 
 					&.active{
@@ -71,10 +80,11 @@ export default class Images extends HTMLElement{
 							place-content: center;
 
 							& > img{
-								max-width: 90dvw;
-								max-height: 90dvh;
+								cursor: initial;
 								width: auto;
 								height: auto;
+								max-width: 90dvw;
+								max-height: 90dvh;
 								object-fit: contain;
 								filter: drop-shadow(0px 5px 20px rgba(0, 0, 0, 0.8));
 							}
