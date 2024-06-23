@@ -1,113 +1,186 @@
-// Useful Links
-
-// Native Form Behaviour
-// https://web.dev/more-capable-form-controls/
-
-"use strict";
-
 export default class Images extends HTMLElement{
 	#JSON = {};
+	#main_element = null;
+	#first_img_element = null;
 
 	constructor(){
 		super();
 		this.#JSON = JSON.parse(this.innerHTML).constructor === Object ? JSON.parse(this.innerHTML) : {};
+		this.#JSON["width"] = this.#JSON["height"] ?? "100px";
+		this.#JSON["height"] = this.#JSON["height"] ?? "100px";
+
 		this.replaceChildren();
 		this.shadow = this.attachShadow({mode: 'closed'});
 
 		DOM: {
 			let imgs = "";
 			for(const img of this.#JSON["images"]) imgs += `<div><img src="${img}"></div>`;
-			this.shadow.innerHTML = `<main>${imgs}</main>`;
-		}
 
-		CSS: {
-			const style = document.createElement('style');
-			style.textContent = `
-				main{
-					/* Disable scrollbar START */
-					-ms-overflow-style: none; /* IE and Edge */
-					scrollbar-width: none; /* Firefox */
+			this.shadow.innerHTML = `
+				<style>
+					:host{
+						display: inline-block;
+						width: ${this.#JSON["width"]};
+						height: ${this.#JSON["height"]};
 
-					&::-webkit-scrollbar{
-						display: none;
-					}
-					/* Disable scrollbar END */
-
-					& > :first-child{
-						transform: scale(1);
-
-						& > img{
-							width: ${this.#JSON["width"] ?? "auto"};
-							height: ${this.#JSON["height"] ?? "auto"};
-							object-fit: ${this.#JSON["height"] ?? "initial"};
-						}
-					}
-
-					& > div{
 						cursor: pointer;
-						width: 0px;
-						height: 0px;
-						transform: scale(0);
+						user-select: none;
+
+						overflow: hidden;
 					}
+					main{
+						display: inline-block;
+						width: ${this.#JSON["width"]};
+						height: ${this.#JSON["height"]};
 
-					&.active{
-						background: hsla(0deg, 0%, 0%, 0.5);
-						backdrop-filter: blur(20px);
+						/* Disable scrollbar START */
+						-ms-overflow-style: none; /* IE and Edge */
+						scrollbar-width: none; /* Firefox */
 
-						height: 100dvh;
-						width: 100dvw;
+						&::-webkit-scrollbar{
+							display: none;
+						}
+						/* Disable scrollbar END */
 
-						overflow-y: hidden;
-						overflow-x: scroll;
-						scroll-snap-type: x mandatory;
-
-						display: flex;
-						flex-direction: row;
-
-						& > div{
+						& > :first-child{
+							display: block;
+							width: ${this.#JSON["width"]};
+							height: ${this.#JSON["height"]};
+							transform: scale(1);
 							overflow: hidden;
 
-							transform: unset;
-							width: unset;
-							height: unset;
+							&::after{
+								pointer-events: none;
+								content: '${this.#JSON["images"].length}';
+								opacity: 0;
 
-							min-width: 100dvw;
-							min-height: 100dvh;
+								background-color: rgba(0, 0, 0, 0.7);
+								color: white;
 
-							scroll-snap-align: start;
+								font-size: 250%;
 
-							display: grid;
-							place-content: center;
+								width: 100%;
+								height: 100%;
+
+								display: grid;
+								place-items: center;
+
+								position: absolute;
+								top: 0px;
+								left: 0px;
+								z-index: 21;
+
+								transition: opacity ease-in-out 250ms;
+							}
+
+							&:hover{
+								&::after{
+									opacity: 1;
+								}
+							}
+
 
 							& > img{
-								cursor: initial;
-								width: auto;
-								height: auto;
-								max-width: 90dvw;
-								max-height: 90dvh;
-								object-fit: contain;
-								filter: drop-shadow(0px 5px 20px rgba(0, 0, 0, 0.8));
+								width: ${this.#JSON["width"]};
+								height: ${this.#JSON["height"]};
+								object-fit: ${this.#JSON["object-fit"] ?? "initial"};
+							}
+						}
+
+						& > div{
+							display: none;
+							width: 0px;
+							height: 0px;
+							transform: scale(0);
+						}
+
+						&.active{
+							background: hsla(0deg, 0%, 0%, 0.5);
+							backdrop-filter: blur(20px);
+
+							height: 100dvh;
+							width: 100dvw;
+
+							overflow-y: hidden;
+							overflow-x: scroll;
+							scroll-snap-type: x mandatory;
+
+							display: flex;
+							flex-direction: row;
+
+							position: fixed;
+							top: 0;
+							left: 0;
+							z-index: 20;
+
+							& > :first-child{
+								&:hover{
+									&::after{
+										transition: opacity ease-in-out 0ms;
+										opacity: 0;
+									}
+								}
+							}
+
+							& > div{
+								overflow: hidden;
+
+								transform: unset;
+								width: unset;
+								height: unset;
+
+								min-width: 100dvw;
+								min-height: 100dvh;
+
+								scroll-snap-align: start;
+
+								display: grid;
+								place-content: center;
+
+								& > img{
+									cursor: initial;
+									width: auto;
+									height: auto;
+									max-width: 90dvw;
+									max-height: 90dvh;
+									object-fit: contain;
+									filter: drop-shadow(0px 5px 20px rgba(0, 0, 0, 0.8));
+								}
 							}
 						}
 					}
-				}
+				</style>
+
+				<main>${imgs}</main>
 			`;
-			this.shadow.appendChild(style);
 		}
 
 		Listeners: {
-			const main_element = this.shadow.querySelector("main");
-			const first_img_element = this.shadow.querySelector("main > :first-child");
+			this.#main_element = this.shadow.querySelector("main");
+			this.#first_img_element = this.shadow.querySelector("main > :first-child");
 
-			first_img_element.onclick = (event)=>{
-				if(!main_element.classList.contains("active")) main_element.classList.add("active");
+			this.#first_img_element.onclick = (event)=>{
+				if(!this.#main_element.classList.contains("active")) this.#show();
 			};
 
-			main_element.onclick = (event)=>{
-				if(event.target.nodeName !== "IMG" && main_element.classList.contains("active"))
-					main_element.classList.remove("active");
+			this.#main_element.onclick = (event)=>{
+				if(event.target.nodeName !== "IMG" && this.#main_element.classList.contains("active")) this.#hide();
 			};
 		}
+	}
+
+	#show(){
+		this.#main_element.classList.add("active");
+
+		// disable scrolling
+		document.body.style = "overflow: hidden";
+	}
+
+	#hide(){
+		this.#main_element.classList.remove("active");
+
+		// enable scrolling
+		document.body.removeAttribute("style");
 	}
 };
 
