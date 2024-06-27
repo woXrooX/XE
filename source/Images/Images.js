@@ -97,6 +97,7 @@ export default class Images extends HTMLElement{
 						&.active{
 							background: hsla(0deg, 0%, 0%, 0.5);
 							backdrop-filter: blur(20px);
+							-webkit-backdrop-filter: blur(20px);
 
 							height: 100dvh;
 							width: 100dvw;
