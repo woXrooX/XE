@@ -54,6 +54,8 @@ export default class Copy extends HTMLElement{
 				// Disable The Copy Button
 				this.copy_button.setAttribute("disabled", "");
 
+				const text_to_copy = element instanceof HTMLInputElement || element instanceof HTMLTextAreaElement ? element.value : element.innerText;
+
 				// Copy The Value
 				navigator.clipboard.writeText(element.innerText);
 
