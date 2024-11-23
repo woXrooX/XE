@@ -32,35 +32,36 @@
 	<body>
 		<div>
 			<x-pie-chart>
-					{
-						"title":"Pie Graph",
-						"labels": true,
-						"hue":136,
-						"background": "rgba(0, 0, 0, 0.1)",
-						"data": [
-							{
-								"label": "lalal",
-								"value": 200
-							},
-							{
-								"label": "Nvidia",
-								"value": 150
-							},
-							{
-								"label": "Microsoft",
-								"value": 50
-							},
-							{
-								"label": "Apple",
-								"value": 75
-							},
-							{
-								"label": "Some very long title",
-								"value": 200
-							}
-						]
-					}
-				</x-pie-chart>
+				{
+					"title":"Pie Graph",
+					"labels": true,
+					"hue": "230deg",
+					"text_color": "red",
+					"background": "rgba(0, 0, 0, 0.1)",
+					"pie": [
+						{
+							"label": "lalal",
+							"value": 200
+						},
+						{
+							"label": "Nvidia",
+							"value": 150
+						},
+						{
+							"label": "Microsoft",
+							"value": 50
+						},
+						{
+							"label": "Apple",
+							"value": 75
+						},
+						{
+							"label": "Some very long title",
+							"value": 2000
+						}
+					]
+				}
+			</x-pie-chart>
 		</div>
 	</body>
 </html>
