@@ -101,15 +101,29 @@ export default class Pie extends HTMLElement {
 		this.#slices = [];
 		let start_angle = 0;
 
+		let sorted_data = [...this.#data["pie"]].sort((a, b) => b.value - a.value);
+
 		for(const slice of this.#data["pie"]){
 			const slice_angle = (slice["value"] / this.#total_value) * 2 * Math.PI;
+
+			let color;
+			for(let i = 0; i < sorted_data.length; i++){
+				if(slice["value"] === sorted_data[i]["value"]){
+					const saturation = 20 + (60 / (this.#data["pie"].length - 1)) * i;
+					const lightness = 20 + (60 / (this.#data["pie"].length - 1)) * i;
+
+					color = `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`;
+					console.log(color);
+					break;
+				}
+			}
 
 			this.#slices.push({
 				start: start_angle,
 				end: start_angle + slice_angle,
 				label: slice["label"],
 				value: slice["value"],
-				color: {"hue": this.#hue, "saturation": "80%", "lightness": "80%"},
+				color: color,
 				hovered: false
 			});
 			start_angle += slice_angle;
@@ -145,7 +159,7 @@ export default class Pie extends HTMLElement {
 		for(const slice of this.#slices){
 			this.#ctx.beginPath();
 			this.#ctx.roundRect(this.#padding, y, 30, this.#font_size, 5);
-			this.#ctx.fillStyle = `hsl(${slice.color.hue}, ${slice.color.saturation}%, ${slice.color.lightness}%)`;
+			this.#ctx.fillStyle = slice["color"];
 			this.#ctx.fill();
 
 			this.#ctx.fillStyle = this.#text_color;
@@ -156,8 +170,6 @@ export default class Pie extends HTMLElement {
 	}
 
 	#draw_slice(slice){
-		console.log(slice.color);
-
 		this.#ctx.beginPath();
 
 		this.#ctx.moveTo(this.#x_center, this.#y_center);
@@ -165,7 +177,7 @@ export default class Pie extends HTMLElement {
 		this.#ctx.closePath();
 
 		this.#ctx.globalAlpha = slice["hovered"] ? 1 : 0.8;
-		this.#ctx.fillStyle = `hsl(${slice["color"]["hue"]}, ${slice["color"]["saturation"]}%, ${slice["color"]["lightness"]}%)`;
+		this.#ctx.fillStyle = slice["color"];
 		this.#ctx.fill();
 
 		this.#ctx.globalAlpha = 1;
