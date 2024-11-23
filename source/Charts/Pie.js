@@ -6,7 +6,7 @@ export default class Pie extends HTMLElement {
 	#tooltip;
 	#parent_element;
 
-	#text_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary");
 	#font_family = "Quicksand";
 	#hue = "230deg";
 
@@ -15,6 +15,7 @@ export default class Pie extends HTMLElement {
 	#pie_radius;
 	#padding = 20;
 	#hover_grow = 20;
+	#parent_paddings = {};
 
 	#total_value = 0;
 	#slices = [];
@@ -22,12 +23,12 @@ export default class Pie extends HTMLElement {
 	constructor(){
 		super();
 
-		this.shadow = this.attachShadow({ mode: 'closed' });
+		this.shadow = this.attachShadow({ mode: "closed" });
 		this.#data = JSON.parse(this.innerHTML);
 		this.#parent_element = this.parentNode;
 
 		// Style element
-		const style = document.createElement('style');
+		const style = document.createElement("style");
 		style.textContent = `
 			div#XE_charts_pie_tooltip{
 				position: absolute;
@@ -43,14 +44,14 @@ export default class Pie extends HTMLElement {
 		this.shadow.appendChild(style);
 
 		// Tooltip element
-		this.#tooltip = document.createElement('div');
+		this.#tooltip = document.createElement("div");
 		this.#tooltip.setAttribute("id", "XE_charts_pie_tooltip");
 		this.shadow.appendChild(this.#tooltip);
 
 		// Canvas element
 		this.#canvas = document.createElement("canvas");
 		this.shadow.appendChild(this.#canvas);
-		this.#ctx = this.#canvas.getContext('2d');
+		this.#ctx = this.#canvas.getContext("2d");
 
 		this.#resize_observer()
 	}
@@ -71,8 +72,17 @@ export default class Pie extends HTMLElement {
 
 	////// Helpers
 	#set_up_canvas(){
-		this.#canvas.width = this.#parent_element.getBoundingClientRect().width;
-		this.#canvas.height = this.#parent_element.getBoundingClientRect().height;
+		const style = getComputedStyle(this.#parent_element);
+		this.#parent_paddings = {
+			left: parseFloat(style.paddingLeft),
+			right: parseFloat(style.paddingRight),
+			top: parseFloat(style.paddingTop),
+			bottom: parseFloat(style.paddingBottom)
+		}
+
+		const rect = this.#parent_element.getBoundingClientRect();
+		this.#canvas.width = rect.width - this.#parent_paddings["left"] - this.#parent_paddings["right"];
+		this.#canvas.height = rect.height - this.#parent_paddings["top"] - this.#parent_paddings["bottom"];
 	}
 
 	#init_values(){
@@ -81,8 +91,8 @@ export default class Pie extends HTMLElement {
 		if("font_family" in this.#data) this.#font_family = this.#data["font_family"];
 		if("background" in this.#data) this.#canvas.style.background = this.#data["background"];
 
-		this.#x_center = this.#canvas.width / 2;
-		this.#y_center = this.#canvas.height / 2;
+		this.#x_center = (this.#canvas.width / 2) + this.#parent_paddings["left"];
+		this.#y_center = (this.#canvas.height / 2) + this.#parent_paddings["top"];
 		this.#pie_radius = Math.min(this.#canvas.width, this.#canvas.height) / 3;
 	}
 
@@ -204,15 +214,15 @@ export default class Pie extends HTMLElement {
 
 			if(hovered_slice != null){
 				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
-				this.#tooltip.style.display = 'block';
-				this.#tooltip.style.left = event.pageX + 'px';
-				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + 'px';
+				this.#tooltip.style.display = "block";
+				this.#tooltip.style.left = event.pageX + "px";
+				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
 				this.#tooltip.textContent = `${hovered_slice.label}: ${hovered_slice.value}`;
-			}else this.#tooltip.style.display = 'none';
+			}else this.#tooltip.style.display = "none";
 
 			if(needs_redraw) this.#init_draw_canvas();
 		});
 	}
 }
 
-window.customElements.define('x-pie-chart', Pie);
+window.customElements.define("x-pie-chart", Pie);
