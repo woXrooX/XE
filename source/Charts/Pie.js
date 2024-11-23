@@ -29,10 +29,6 @@ export default class Pie extends HTMLElement {
 		// Style element
 		const style = document.createElement('style');
 		style.textContent = `
-			canvas{
-				max-width: 100dvw;
-				max-height: 100dvh;
-			}
 			div#XE_charts_pie_tooltip{
 				position: absolute;
 				display: none;
