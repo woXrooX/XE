@@ -6,12 +6,10 @@ export default class Pie extends HTMLElement {
 	#tooltip;
 	#parent_element;
 
-	#total_value;
-
-	#text_color;
-	#font_size;
-	#font_family;
-	#hue;
+	#text_color = "black";
+	#font_size = 22;
+	#font_family = "Quicksand";
+	#hue = "230deg";
 
 	#x_center;
 	#y_center;
@@ -19,7 +17,8 @@ export default class Pie extends HTMLElement {
 	#padding = 20;
 	#hover_grow = 20;
 
-	#pie_slices;
+	#total_value = 0;
+	#slices = [];
 
 	constructor(){
 		super();
@@ -35,7 +34,7 @@ export default class Pie extends HTMLElement {
 				max-width: 100dvw;
 				max-height: 100dvh;
 			}
-			div#pie_tooltip{
+			div#XE_charts_pie_tooltip{
 				position: absolute;
 				display: none;
 				background-color: rgba(0, 0, 0, 0.7);
@@ -50,35 +49,27 @@ export default class Pie extends HTMLElement {
 
 		// Tooltip element
 		this.#tooltip = document.createElement('div');
-		this.#tooltip.setAttribute("id", "pie_tooltip");
+		this.#tooltip.setAttribute("id", "XE_charts_pie_tooltip");
 		this.shadow.appendChild(this.#tooltip);
 
 		// Canvas element
-		this.shadow.appendChild(document.createElement("canvas"));
-		this.#canvas = this.shadow.querySelector("canvas");
+		this.#canvas = document.createElement("canvas");
+		this.shadow.appendChild(this.#canvas);
 		this.#ctx = this.#canvas.getContext('2d');
 
-		this.#resizeObserver()
+		this.#resize_observer()
 	}
 
 	////// APIs
-	#resizeObserver(){
-		const resizeObserver = new ResizeObserver(this.#init);
-		resizeObserver.observe(this.#parent_element);
+	#resize_observer(){
+		const resize_observer_object = new ResizeObserver(this.#init);
+		resize_observer_object.observe(this.#parent_element);
 	}
 
 	#init = ()=>{
-		this.#pie_slices = [];
-		this.#total_value = 0;
-
-		this.#text_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || 'black';
-		this.#hue = this.#data["hue"] || '230';
-
 		this.#set_up_canvas();
 		this.#set_values();
-
 		this.#draw_full_chart();
-
 		this.#pie_hover();
 	}
 
@@ -88,58 +79,46 @@ export default class Pie extends HTMLElement {
 		this.#canvas.width = this.#parent_element.getBoundingClientRect().width;
 		this.#canvas.height = this.#parent_element.getBoundingClientRect().height;
 		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-
-		if("background" in this.#data) this.#canvas.style.background = this.#data["background"];
 	}
 
 	#set_values(){
-		"font_family" in this.#data ? this.#font_family = this.#data["font_family"] : this.#font_family = "Quicksand";
-		"font_size" in this.#data ? this.#font_size = this.#data["font_size"] : this.#font_size = 16;
+		if("text_color" in this.#data) this.#text_color = this.#data["text_color"];
+		if("hue" in this.#data) this.#hue = this.#data["hue"];
+		if("font_family" in this.#data) this.#font_family = this.#data["font_family"];
+		if("font_size" in this.#data) this.#font_size = this.#data["font_size"];
+		if("background" in this.#data) this.#canvas.style.background = this.#data["background"];
 
 		this.#x_center = this.#canvas.width / 2;
 		this.#y_center = this.#canvas.height / 2;
-
 		this.#pie_radius = Math.min(this.#canvas.width, this.#canvas.height) / 3;
 
-		for(const item of this.#data["data"]) this.#total_value += item["value"];
 
-		// Slice objct
+
+		this.#total_value = 0;
+		for(const slice of this.#data["pie"]) this.#total_value += slice["value"];
+
+		// Slice object
+		this.#slices = [];
 		let start_angle = 0;
-		for(const item of this.#data["data"]){
-			// Pie Slice Angle Formula
-			// radians value | 2rad = 360deg | rad x 180/PI = degree; arc works with rads
-			let slice_angle = (item["value"] / this.#total_value) * 2 * Math.PI;
-			this.#pie_slices.push({
+
+		for(const slice of this.#data["pie"]){
+			const slice_angle = (slice["value"] / this.#total_value) * 2 * Math.PI;
+
+			this.#slices.push({
 				start: start_angle,
 				end: start_angle + slice_angle,
-				label: item["label"],
-				value: item["value"],
+				label: slice["label"],
+				value: slice["value"],
+				color: {"hue": this.#hue, "saturation": "80%", "lightness": "80%"},
 				hovered: false
-			})
+			});
 			start_angle += slice_angle;
-		}
-
-		// sort data & give color from max to min
-		let sorted_data = [...this.#data["data"]].sort((a, b) => b.value - a.value);
-		let used_slices = new Set(); // To keep track of slices already used for coloring
-
-		for(let i = 0; i < sorted_data.length; i++){
-			for(const slice of this.#pie_slices){
-				if (slice["value"] === sorted_data[i]["value"]) {
-					const saturation = 20 + (60 / (this.#data["data"].length - 1)) * i;
-					const lightness = 20 + (60 / (this.#data["data"].length - 1)) * i;
-
-					slice["color"] = {"hue": this.#hue, "saturation": saturation, "lightness": lightness}
-					
-					used_slices.add(slice);
-				}
-			}
 		}
 	}
 
 	#draw_full_chart(){
 		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
-		for(const slice of this.#pie_slices) this.#draw_slice(slice);
+		for(const slice of this.#slices) this.#draw_slice(slice);
 
 		if("labels" in this.#data && this.#data["labels"] === true) this.#draw_lables();
 
@@ -163,10 +142,10 @@ export default class Pie extends HTMLElement {
 		this.#ctx.globalAlpha = 1;
 
 		let y = this.#padding;
-		for (const slice of this.#pie_slices) {
+		for(const slice of this.#slices){
 			this.#ctx.beginPath();
 			this.#ctx.roundRect(this.#padding, y, 30, this.#font_size, 5);
-			this.#ctx.fillStyle = `hsl(${slice.color.hue}deg, ${slice.color.saturation}%, ${slice.color.lightness}%)`;
+			this.#ctx.fillStyle = `hsl(${slice.color.hue}, ${slice.color.saturation}%, ${slice.color.lightness}%)`;
 			this.#ctx.fill();
 
 			this.#ctx.fillStyle = this.#text_color;
@@ -177,15 +156,22 @@ export default class Pie extends HTMLElement {
 	}
 
 	#draw_slice(slice){
+		console.log(slice.color);
+
 		this.#ctx.beginPath();
 
 		this.#ctx.moveTo(this.#x_center, this.#y_center);
 		this.#ctx.arc(this.#x_center, this.#y_center, this.#pie_radius + (slice.hovered ? this.#hover_grow : 0), slice.start, slice.end);
 		this.#ctx.closePath();
 
-		this.#ctx.globalAlpha = slice.hovered ? 1 : 0.8;
-		this.#ctx.fillStyle = `hsl(${slice.color.hue}deg, ${slice.color.saturation}%, ${slice.color.lightness}%)`;
+		this.#ctx.globalAlpha = slice["hovered"] ? 1 : 0.8;
+		this.#ctx.fillStyle = `hsl(${slice["color"]["hue"]}, ${slice["color"]["saturation"]}%, ${slice["color"]["lightness"]}%)`;
 		this.#ctx.fill();
+
+		this.#ctx.globalAlpha = 1;
+		this.#ctx.lineWidth = 2;
+		this.#ctx.strokeStyle = "white";
+		this.#ctx.stroke();
 	}
 
 
@@ -200,7 +186,7 @@ export default class Pie extends HTMLElement {
 
 			let needs_redraw = false;
 			let hovered_slice = null;
-			for(const slice of this.#pie_slices){
+			for(const slice of this.#slices){
 				const is_hovered = distance <= this.#pie_radius && mouse_angle >= slice.start && mouse_angle < slice.end;
 
 				if(slice.hovered !== is_hovered){
