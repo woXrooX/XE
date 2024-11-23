@@ -125,14 +125,13 @@ export default class Pie extends HTMLElement {
 
 		for(let i = 0; i < sorted_data.length; i++){
 			for(const slice of this.#pie_slices){
-				if (slice["value"] === sorted_data[i]["value"] && !used_slices.has(slice)) {
+				if (slice["value"] === sorted_data[i]["value"]) {
 					const saturation = 20 + (60 / (this.#data["data"].length - 1)) * i;
 					const lightness = 20 + (60 / (this.#data["data"].length - 1)) * i;
 
 					slice["color"] = {"hue": this.#hue, "saturation": saturation, "lightness": lightness}
 					
 					used_slices.add(slice);
-					break;
 				}
 			}
 		}
