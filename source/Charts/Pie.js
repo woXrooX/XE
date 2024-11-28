@@ -131,7 +131,6 @@ export default class Pie extends HTMLElement {
 
 		for(const slice of this.#data["pie"]){
 			const slice_angle = (slice["value"] / this.#total_value) * 2 * Math.PI;
-			const percent = (slice["value"] / this.#total_value) * 100;
 
 			const index_of_this_value = sorted_slice_values.indexOf(slice["value"]);
 			const saturation = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
@@ -142,7 +141,7 @@ export default class Pie extends HTMLElement {
 				end: start_angle + slice_angle,
 				label: slice["label"],
 				value: slice["value"],
-				percent: percent.toFixed(2),
+				percent: ((slice["value"] / this.#total_value) * 100).toFixed(2),
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				hovered: false,
 				current_radius: this.#pie_radius  // Initialize here
