@@ -131,6 +131,7 @@ export default class Pie extends HTMLElement {
 
 		for(const slice of this.#data["pie"]){
 			const slice_angle = (slice["value"] / this.#total_value) * 2 * Math.PI;
+			const percent = (slice["value"] / this.#total_value) * 100;
 
 			const index_of_this_value = sorted_slice_values.indexOf(slice["value"]);
 			const saturation = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
@@ -141,6 +142,7 @@ export default class Pie extends HTMLElement {
 				end: start_angle + slice_angle,
 				label: slice["label"],
 				value: slice["value"],
+				percent: percent.toFixed(2),
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				hovered: false,
 				current_radius: this.#pie_radius  // Initialize here
@@ -153,7 +155,6 @@ export default class Pie extends HTMLElement {
 		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
 
 		this.#draw_slices();
-		this.#draw_title();
 		this.#draw_legends();
 	}
 
@@ -201,16 +202,6 @@ export default class Pie extends HTMLElement {
 		}
 	}
 
-	#draw_title(){
-		if(!("title" in this.#data)) return;
-
-		this.#ctx.font = `1.5em ${this.#font_family}`;
-		this.#ctx.textAlign = "center";
-		this.#ctx.textBaseline = "top";
-		this.#ctx.fillStyle = this.#text_color;
-		this.#ctx.fillText(this.#data["title"], this.#x_center, this.#padding);
-	}
-
 	#draw_legends(){
 		if(!("legends" in this.#data) || this.#data["legends"] !== true) return;
 
@@ -227,7 +218,7 @@ export default class Pie extends HTMLElement {
 			this.#ctx.fill();
 
 			this.#ctx.fillStyle = this.#text_color;
-			this.#ctx.fillText(`${slice["label"]}: ${slice["value"]}`, 60, y+5);
+			this.#ctx.fillText(`${slice["label"]}: ${slice["value"]} (${slice["percent"]}%)`, 60, y+5);
 
 			y += 30;
 		}
@@ -259,7 +250,7 @@ export default class Pie extends HTMLElement {
 				this.#tooltip.style.display = "block";
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `${hovered_slice.label}: ${hovered_slice.value}`;
+				this.#tooltip.textContent = `${hovered_slice.label}: ${hovered_slice.value} (${hovered_slice["percent"]}%)`;
 			}else this.#tooltip.style.display = "none";
 
 			if(needs_redraw) this.#init_draw_canvas();
