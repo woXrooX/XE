@@ -133,8 +133,8 @@ export default class Pie extends HTMLElement {
 			const slice_angle = (slice["value"] / this.#total_value) * 2 * Math.PI;
 
 			const index_of_this_value = sorted_slice_values.indexOf(slice["value"]);
-			const saturation = 20 + (60 / (this.#data["pie"].length - 1)) * index_of_this_value;
-			const lightness = 20 + (60 / (this.#data["pie"].length - 1)) * index_of_this_value;
+			const saturation = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
+			const lightness = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
 
 			this.#slices.push({
 				start: start_angle,
