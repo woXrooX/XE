@@ -27,6 +27,8 @@ export default class Bar extends HTMLElement {
 	#canvas_DPI_width;
 	#canvas_DPI_height;
 
+	#parent_node_height;
+
 	constructor(){
 		super();
 
@@ -115,6 +117,8 @@ export default class Bar extends HTMLElement {
 		this.#canvas_DPI_width = css_width;
 		this.#canvas_DPI_height = css_height;
 
+		this.#parent_node_height = getComputedStyle(this.parentNode).height;
+
 		// Adjust canvas buffer size for DPR
 		this.#canvas.width = css_width * DPR;
 		this.#canvas.height = css_height * DPR;
@@ -142,7 +146,7 @@ export default class Bar extends HTMLElement {
 		let longest_label = [...this.#data["bars"]].sort((a, b) => b["label"].length - a["label"].length)[0]["label"];
 		let longest_label_width = this.#ctx.measureText(longest_label).width;
 
-		this.#bar_gap = this.parentNode.clientHeight * 0.01 > 5 ? this.parentNode.clientHeight * 0.01 : 5;
+		this.#bar_gap = this.#parent_node_height * 0.01 > 5 ? this.#parent_node_height * 0.01 : 5;
 
 		if(this.#data["direction"] == "horizontal"){
 			this.#bar_scale = (this.#canvas_DPI_width - this.#padding * 2) / this.#max_value;
