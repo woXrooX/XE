@@ -24,6 +24,8 @@ export default class Bar extends HTMLElement {
 	#bar_gap = 10;
 	#border_radius = 5;
 	#bar_scale = 0;
+	#canvas_DPI_width;
+	#canvas_DPI_height;
 
 	constructor(){
 		super();
@@ -110,6 +112,9 @@ export default class Bar extends HTMLElement {
 		const css_width = parseFloat(computed_style.width);
 		const css_height = parseFloat(computed_style.height);
 
+		this.#canvas_DPI_width = css_width;
+		this.#canvas_DPI_height = css_height;
+
 		// Adjust canvas buffer size for DPR
 		this.#canvas.width = css_width * DPR;
 		this.#canvas.height = css_height * DPR;
@@ -129,8 +134,8 @@ export default class Bar extends HTMLElement {
 
 		this.#paddings = {
 			top: this.#padding,
-			right: this.#canvas.width - this.#padding,
-			bottom: this.#canvas.height - this.#padding,
+			right: this.#canvas_DPI_width - this.#padding,
+			bottom: this.#canvas_DPI_height - this.#padding,
 			left: this.#padding
 		};
 
@@ -140,7 +145,7 @@ export default class Bar extends HTMLElement {
 		this.#bar_gap = this.parentNode.clientHeight * 0.01 > 5 ? this.parentNode.clientHeight * 0.01 : 5;
 
 		if(this.#data["direction"] == "horizontal"){
-			this.#bar_scale = (this.#canvas.width - this.#padding * 2) / this.#max_value;
+			this.#bar_scale = (this.#canvas_DPI_width - this.#padding * 2) / this.#max_value;
 
 			// let percentage_width = 0;
 			// if(this.#data["bar"]["percentage"] == true) percentage_width = 80;
@@ -156,15 +161,15 @@ export default class Bar extends HTMLElement {
 
 			if(this.#data["bar"]["values"] == true || this.#data["bar"]["percentage"] == true){
 				this.#paddings["right"] -= bar_text_width + this.#padding;
-				this.#bar_scale = (this.#canvas.width - this.#padding * 3 - bar_text_width) / this.#max_value;
+				this.#bar_scale = (this.#canvas_DPI_width - this.#padding * 3 - bar_text_width) / this.#max_value;
 			}
 
 			if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true){
 				this.#paddings["left"] += longest_label_width*2 + this.#padding;
-				this.#bar_scale = (this.#canvas.width - this.#paddings["left"] - this.#padding) / this.#max_value;
+				this.#bar_scale = (this.#canvas_DPI_width - this.#paddings["left"] - this.#padding) / this.#max_value;
 
 				if(this.#data["bar"]["values"] == true || this.#data["bar"]["percentage"] == true)
-					this.#bar_scale = (this.#canvas.width - this.#paddings["left"] - this.#padding * 2 - bar_text_width) / this.#max_value;
+					this.#bar_scale = (this.#canvas_DPI_width - this.#paddings["left"] - this.#padding * 2 - bar_text_width) / this.#max_value;
 			}
 
 			if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true) this.#paddings["bottom"] -= max_value_width * 2;
@@ -174,16 +179,16 @@ export default class Bar extends HTMLElement {
 			this.#y_axis_step_value = this.#max_value / this.#y_axis_marker_count;
 		}
 		else{
-			this.#bar_scale = (this.#canvas.height - this.#padding * 2) / this.#max_value;
+			this.#bar_scale = (this.#canvas_DPI_height - this.#padding * 2) / this.#max_value;
 
 			if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true){
 				this.#paddings["bottom"] -= max_value_width;
-				this.#bar_scale = (this.#canvas.height - this.#padding * 2 - max_value_width) / this.#max_value;
+				this.#bar_scale = (this.#canvas_DPI_height - this.#padding * 2 - max_value_width) / this.#max_value;
 
 				for(const bar of this.#data["bars"]) if(this.#ctx.measureText(bar["label"]).width*2 >= this.#bar_width) this.#rotation_needed = true;
 				if(this.#rotation_needed == true){
 					this.#paddings["bottom"] -= longest_label_width*2 + this.#padding;
-					this.#bar_scale = (this.#canvas.height - this.#padding * 3 - max_value_width - longest_label_width * 2) / this.#max_value;
+					this.#bar_scale = (this.#canvas_DPI_height - this.#padding * 3 - max_value_width - longest_label_width * 2) / this.#max_value;
 				}
 			}
 
