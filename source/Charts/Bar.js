@@ -2,112 +2,130 @@ export default class Bar extends HTMLElement {
 	#data;
 	#canvas;
 	#ctx;
+	#tooltip;
 
-	#textColor = "black";
-	#xAxisColor = "black";
-	#yAxisColor = "black";
-	#gridColor = "gray";
-	#fontSize = 12;
+	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary");
+	#font_family = "Quicksand";
+	#hue = "230deg";
+	#x_axis_color = "black";
+	#y_axis_color = "black";
+	#rotation_needed = false;
 
-	#padding = 50;
-	#paddings;
-	#minValue = Infinity;
-	#maxValue = -Infinity;
-	#gapYAxis = 0;
-	#scaleY;
-	#markerSize = 10;
-	#markerCountYAxis = 10;
-	#YAxisStepValue;
-	#parentElement = null;
+	#max_value = 0;
+	#padding = 20;
+	#paddings = {};
+	#y_axis_marker_count = 5;
+	#gap_y_axis_markers = 0;
+	#y_axis_step_value = 0;
 
-	#valuesArr = []
-	#barWidth = 0;
-	#barGap = 0;
-	#borderRadius = 0;
+	#bars = [];
+	#total_value = 0;
+	#bar_width = 60;
+	#bar_gap = 10;
+	#border_radius = 5;
+	#bar_scale = 0;
 
 	constructor(){
 		super();
 
-		this.shadow = this.attachShadow({ mode: 'closed' });
+		this.shadow = this.attachShadow({ mode: "closed" });
 		this.#data = JSON.parse(this.innerHTML);
-		this.#parentElement = this.parentNode;
 
 		// Style element
-		const style = document.createElement('style');
+		const style = document.createElement("style");
 		style.textContent = `
+			:host{
+				display: inline-block;
+				width: 100%;
+				height: 100%;
+				max-width: 100dvw;
+				max-height: 100dvh;
+			}
 			canvas{
-				max-width: 100vw;
-				max-height: 100vh;
+				width: 100%;
+				height: 100%;
+			}
+			div#XE_charts_bar_tooltip{
+				position: absolute;
+				display: none;
+				background-color: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 5px;
+				border-radius: 5px;
+				pointer-events: none;
+				font-size: 0.6em;
 			}
 		`;
 		this.shadow.appendChild(style);
 
-		// Canvas element
-		this.shadow.appendChild(document.createElement("canvas"));
-		this.#canvas = this.shadow.querySelector("canvas");
-		this.#ctx = this.#canvas.getContext('2d');
+		// Tooltip element
+		this.#tooltip = document.createElement("div");
+		this.#tooltip.setAttribute("id", "XE_charts_bar_tooltip");
+		this.shadow.appendChild(this.#tooltip);
 
-		this.#resizeObserver()
+		// Canvas element
+		this.#canvas = document.createElement("canvas");
+		this.shadow.appendChild(this.#canvas);
+		this.#ctx = this.#canvas.getContext("2d");
+
+		this.#resize_observer();
+
+		this.#init_draw_canvas();
+
+		this.#init_on_hover_pie();
 	}
 
 	////// APIs
-	#resizeObserver(){
-		const resizeObserver = new ResizeObserver(this.#init);
-		resizeObserver.observe(this.#parentElement);
+	#resize_observer(){
+		const resize_observer_object = new ResizeObserver(this.#init_draw_canvas);
+		resize_observer_object.observe(this.parentNode);
 	}
 
-	#init = ()=>{
-		this.#textColor = this.#xAxisColor = this.#yAxisColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+	#init_draw_canvas = ()=>{
+		this.#set_up_canvas();
+		this.#init_values();
 
-		this.#setUpCanvas();
-		this.#setValues();
-		this.#drawTitle();
+		this.#draw_x_axis_line();
+		this.#draw_x_axis_markers();
+		this.#draw_y_axis_line();
+		this.#draw_y_axis_markers();
+		this.#draw_y_axis_marker_lines();
 
-		if("yAxis" in this.#data){
-			if("title" in this.#data["yAxis"]) this.#drawYAxisTitle();
-			if("line" in this.#data["yAxis"]) this.#drawMainYAxis();
-			if("markers" in this.#data["yAxis"]) this.#drawMarkersYAxis();
-			if("color" in this.#data["yAxis"]) this.#yAxisColor = this.#data["yAxis"]["color"];
-		}
-
-		if("xAxis" in this.#data){
-			if("line" in this.#data["xAxis"]) this.#drawMainXAxis();
-			if("markers" in this.#data["xAxis"]) this.#drawLegends();
-			if("color" in this.#data["xAxis"]) this.#xAxisColor = this.#data["xAxis"]["color"];
-		}
-
-		if("bar" in this.#data){
-			if("radius" in this.#data["bar"] && parseInt(this.#data["bar"]["radius"]) >= 0) this.#drawBarRadius();
-			if("values" in this.#data["bar"]) this.#drawBarValues();
-		}
-
-		if("grid" in this.#data){
-			if("horizontal" in this.#data["grid"]) this.#drawXLines();
-			if("color" in this.#data["grid"]) this.#gridColor = this.#data["grid"]["color"];
-		}
-
-		if("fillType" in this.#data){
-			if(this.#data["fillType"] === "opacity") this.#opacityBackground();
-			this.#drawBars();
-		}
+		this.#draw_opacity();
+		this.#init_bars();
+		this.#draw_bars();
+		this.#draw_bar_values();
 	}
 
 	////// Helpers
-	#setUpCanvas(){
-		this.#canvas.width = this.#parentElement.clientWidth;
-		this.#canvas.height = this.#parentElement.clientWidth / 2;
-		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+	#set_up_canvas(){
+		const DPR = window.devicePixelRatio || 1;
+
+		// First set CSS dimensions
+		this.#canvas.style.width = '100%';
+		this.#canvas.style.height = '100%';
+
+		// Get the size in CSS pixels after CSS is applied
+		const computed_style = getComputedStyle(this.#canvas);
+		const css_width = parseFloat(computed_style.width);
+		const css_height = parseFloat(computed_style.height);
+
+		// Adjust canvas buffer size for DPR
+		this.#canvas.width = css_width * DPR;
+		this.#canvas.height = css_height * DPR;
+
+		// Scale the context for DPR
+		this.#ctx.scale(DPR, DPR);
 	}
 
-	#setValues(){
-		// Marker count Y axis
-		if ("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
+	#init_values(){
+		if("text_color" in this.#data) this.#text_color = this.#data["text_color"];
+		if("hue" in this.#data) this.#hue = this.#data["hue"];
+		if("font_family" in this.#data) this.#font_family = this.#data["font_family"];
+		if("background" in this.#data) this.#canvas.style.background = this.#data["background"];
 
-		if(this.#valuesArr.length === 0) for(let i = 0; i < this.#data["data"].length; i++) this.#valuesArr.push(this.#data["data"][i]["value"])
-
-		this.#minValue = Math.min(...this.#valuesArr);
-		this.#maxValue = Math.max(...this.#valuesArr);
-		this.#maxValue = this.#maxValue + 10
+		if(this.#max_value == 0) for(const bar of this.#data["bars"]) if(bar["value"] > this.#max_value) this.#max_value = bar["value"];
+		let max_value_width = this.#ctx.measureText(this.#max_value).width;
 
 		this.#paddings = {
 			top: this.#padding,
@@ -116,140 +134,325 @@ export default class Bar extends HTMLElement {
 			left: this.#padding
 		};
 
-		this.#gapYAxis = (this.#paddings.bottom - this.#padding) / (this.#markerCountYAxis - 1);
-		this.#scaleY = (this.#canvas.height - this.#padding * 2) / this.#maxValue;
+		let longest_label = [...this.#data["bars"]].sort((a, b) => b["label"].length - a["label"].length)[0]["label"];
+		let longest_label_width = this.#ctx.measureText(longest_label).width;
 
-		this.#YAxisStepValue = this.#maxValue / (this.#markerCountYAxis - 1);
+		this.#bar_gap = this.parentNode.clientHeight * 0.01 > 5 ? this.parentNode.clientHeight * 0.01 : 5;
 
-		this.#barGap = this.#parentElement.clientWidth * 0.01;
-		this.#barWidth = (this.#paddings.right - this.#barGap - this.#paddings.left) / this.#valuesArr.length;
+		if(this.#data["direction"] == "horizontal"){
+			this.#bar_scale = (this.#canvas.width - this.#padding * 2) / this.#max_value;
+
+			// let percentage_width = 0;
+			// if(this.#data["bar"]["percentage"] == true) percentage_width = 80;
+
+			let bar_text_width = 0;
+			if(this.#data["bar"]["percentage"] == true && this.#data["bar"]["values"]){
+				bar_text_width = (max_value_width * 2) + 80;
+			}else if(this.#data["bar"]["percentage"] == true){
+				bar_text_width = 50;
+			}else{
+				bar_text_width = max_value_width * 2;
+			}
+
+			if(this.#data["bar"]["values"] == true || this.#data["bar"]["percentage"] == true){
+				this.#paddings["right"] -= bar_text_width + this.#padding;
+				this.#bar_scale = (this.#canvas.width - this.#padding * 3 - bar_text_width) / this.#max_value;
+			}
+
+			if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true){
+				this.#paddings["left"] += longest_label_width*2 + this.#padding;
+				this.#bar_scale = (this.#canvas.width - this.#paddings["left"] - this.#padding) / this.#max_value;
+
+				if(this.#data["bar"]["values"] == true || this.#data["bar"]["percentage"] == true)
+					this.#bar_scale = (this.#canvas.width - this.#paddings["left"] - this.#padding * 2 - bar_text_width) / this.#max_value;
+			}
+
+			if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true) this.#paddings["bottom"] -= max_value_width * 2;
+
+			this.#bar_width = (this.#paddings.bottom - this.#bar_gap - this.#paddings["top"]) / this.#data["bars"].length;
+			this.#gap_y_axis_markers = (this.#paddings["right"] - this.#paddings["left"]) / (this.#y_axis_marker_count);
+			this.#y_axis_step_value = this.#max_value / this.#y_axis_marker_count;
+		}
+		else{
+			this.#bar_scale = (this.#canvas.height - this.#padding * 2) / this.#max_value;
+
+			if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true){
+				this.#paddings["bottom"] -= max_value_width;
+				this.#bar_scale = (this.#canvas.height - this.#padding * 2 - max_value_width) / this.#max_value;
+
+				for(const bar of this.#data["bars"]) if(this.#ctx.measureText(bar["label"]).width*2 >= this.#bar_width) this.#rotation_needed = true;
+				if(this.#rotation_needed == true){
+					this.#paddings["bottom"] -= longest_label_width*2 + this.#padding;
+					this.#bar_scale = (this.#canvas.height - this.#padding * 3 - max_value_width - longest_label_width * 2) / this.#max_value;
+				}
+			}
+
+			if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true) this.#paddings["left"] += max_value_width * 3;
+
+			this.#bar_width = (this.#paddings["right"] - this.#bar_gap - this.#paddings["left"]) / this.#data["bars"].length;
+			this.#gap_y_axis_markers = (this.#paddings["bottom"] - this.#padding) / (this.#y_axis_marker_count);
+			this.#y_axis_step_value = this.#max_value / this.#y_axis_marker_count;
+		}
+
+		if(this.#data["sorted"] == true) this.#data["bars"].sort((a, b) => b["value"] - a["value"]);
+
+		if("bar" in this.#data && "radius" in this.#data["bar"]) this.#border_radius = this.#data["bar"]["radius"];
 	}
 
-	#drawTitle(){
-		this.#ctx.beginPath()
-		this.#ctx.fillStyle = this.#textColor;
-		this.#ctx.textAlign = "center";
-		this.#ctx.font = "bold 16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-		this.#ctx.fillText(this.#data.title, this.#canvas.width / 2, this.#paddings.top / 2);
+	#init_bars(){
+		const sorted_bar_values = [];
+		this.#total_value = 0;
+		for(const bar of this.#data["bars"]){
+			this.#total_value += bar["value"];
+			sorted_bar_values.push(bar["value"]);
+		}
+		sorted_bar_values.sort((a, b) => b - a);
 
-	}
+		this.#bars = [];
+		let x = 0;
+		let y = 0;
+		let height = 0;
+		let width = 0;
+		for(let i = 0; i < this.#data["bars"].length; i++){
+			if(this.#data["direction"] == "horizontal"){
+				y = i * this.#bar_width + (this.#bar_gap * 2) + this.#paddings["top"];
+				x = this.#paddings["left"];
+				height = this.#bar_width;
+				width = this.#data["bars"][i]["value"] * this.#bar_scale;
+			}else{
+				x = i * this.#bar_width + (this.#bar_gap * 2) + this.#paddings["left"];
+				y = this.#paddings["bottom"] - (this.#data["bars"][i]["value"] * this.#bar_scale);
+				height = this.#data["bars"][i]["value"] * this.#bar_scale;
+				width = this.#bar_width;
+			}
 
-	#drawMainXAxis(){
-		this.#ctx.beginPath();
+			const index_of_this_value = sorted_bar_values.indexOf(this.#data["bars"][i]["value"]);
+			const saturation = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
+			const lightness = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
 
-		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
-		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
-
-		this.#ctx.strokeStyle = this.#xAxisColor;
-		this.#ctx.lineWidth = 1;
-		this.#ctx.stroke();
-	}
-
-	#drawMainYAxis(){
-		this.#ctx.beginPath();
-
-		let startY = this.#paddings.top;
-		let endY = this.#paddings.bottom;
-
-		this.#ctx.moveTo(this.#paddings.left, startY);
-		this.#ctx.lineTo(this.#paddings.left, endY);
-
-		this.#ctx.strokeStyle = this.#yAxisColor;
-		this.#ctx.lineWidth = 1;
-		this.#ctx.stroke();
-	}
-
-	#drawMarkersYAxis(){
-		for(let i = 0; i < this.#markerCountYAxis; i++){
-			this.#ctx.textAlign = "right";
-			this.#ctx.fillStyle = this.#textColor;
-			this.#ctx.font = " 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
-			this.#ctx.textBaseline = "middle";
-			this.#ctx.fillText((this.#maxValue - i * this.#YAxisStepValue).toFixed(1), this.#paddings.left - this.#markerSize * 1.5, i * this.#gapYAxis + this.#padding);
+			this.#bars.push({
+				x: x,
+				y: y,
+				width: width,
+				height: height,
+				label: this.#data["bars"][i]["label"],
+				value: this.#data["bars"][i]["value"],
+				percent: ((this.#data["bars"][i]["value"] / this.#total_value) * 100).toFixed(1),
+				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
+				hovered: false,
+				radius: this.#border_radius
+			});
 		}
 	}
 
-	#drawYAxisTitle(){
-		this.#paddings.left = this.#paddings.left * 2
-		this.#barWidth = (this.#paddings.right - this.#barGap - this.#paddings.left) / this.#valuesArr.length;
-
-		this.#ctx.save();
-		this.#ctx.translate(this.#padding/2, this.#canvas.height / 2);
-		this.#ctx.rotate(-Math.PI / 2);
-		this.#ctx.fillStyle = this.#textColor;
-		this.#ctx.textAlign = "center";
-		this.#ctx.textBaseline = "top";
-		this.#ctx.font = "16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-		this.#ctx.fillText(this.#data["yAxis"]["title"], 0, 0);
-		this.#ctx.restore();
-	}
-
-	#drawXLines(){
-		this.#ctx.strokeStyle = this.#gridColor;
-		this.#ctx.lineWidth = 0.5;
-
-		for (let i = 0; i < this.#markerCountYAxis; i++) {
-			this.#ctx.beginPath();
-			this.#ctx.moveTo(this.#paddings.left - this.#markerSize, this.#gapYAxis * i + this.#padding);
-			this.#ctx.lineTo(this.#paddings.right, this.#gapYAxis * i + this.#padding);
-			this.#ctx.stroke();
-		}
-	}
-
-	#drawBarRadius(){
-		this.#borderRadius = this.#data["bar"]["radius"]
-	}
-
-	#opacityBackground(){
-		this.#ctx.globalAlpha = 0.5
-		this.#ctx.lineWidth = 2
-	}
-
-	#drawBars(){
-		for (let i = 0; i < this.#valuesArr.length; i++) {
-
-			const x = i * this.#barWidth + this.#barGap + this.#paddings.left;
-			let y = this.#paddings.bottom - (this.#valuesArr[i]) * this.#scaleY;
-
-			let height = this.#valuesArr[i] * this.#scaleY;
+	#draw_bars(){
+		let x = 0;
+		let y = 0;
+		let width = 0;
+		let height = 0;
+		for(const bar of this.#bars){
+			if(this.#data["direction"] == "horizontal"){
+				width = bar["width"];
+				height = bar["height"] - this.#bar_gap;
+				x = bar["x"];
+				y = bar["y"];
+			}else{
+				width = bar["width"] - this.#bar_gap;
+				height = bar["height"];
+				x = bar["x"] - (this.#bar_gap * 2);
+				y = bar["y"];
+			}
 
 			this.#ctx.beginPath()
-			this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? "#DAE6E5";
-			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? "#DAE6E5";
-			this.#ctx.roundRect(x, y + 1, this.#barWidth - this.#barGap, height - 2, this.#borderRadius);
-			this.#ctx.stroke()
+			this.#ctx.fillStyle = bar["color"];
+			this.#ctx.strokeStyle = bar["color"];
+			this.#ctx.roundRect(x, bar["y"], width, height, this.#border_radius);
 			this.#ctx.fill()
+			this.#ctx.stroke()
 			this.#ctx.closePath()
 		}
 	}
 
-	#drawBarValues(){
-		for (let i = 0; i < this.#data["data"].length; i++) {
-			let y = this.#paddings.bottom - (this.#valuesArr[i]) * this.#scaleY - this.#barGap/1.5
-			let x = i * this.#barWidth + this.#barWidth/2 + this.#paddings.left;
+	#draw_bar_values(){
+		if(this.#data["direction"] != "horizontal" || this.#data["bar"]["values"] != true && this.#data["bar"]["percentage"] != true) return;
 
-			this.#ctx.textBaseline = "center";
-			this.#ctx.textAlign = "center";
-			this.#ctx.font = `${this.#fontSize * 1.5}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;
-			this.#ctx.fillText(this.#valuesArr[i], x + this.#barGap/2, y);
+		for(let i = 0; i < this.#bars.length; i++){
+			let text = '';
+			if(this.#data["bar"]["percentage"] == true && this.#data["bar"]["values"]){
+				text = `${this.#bars[i]["value"]} (${this.#bars[i]["percent"]})%`;
+			}else if(this.#data["bar"]["percentage"] == true){
+				text = `${this.#bars[i]["percent"]}%`;
+			}else{
+				text = this.#bars[i]["value"];
+			}
 
-			x += this.#barWidth;
+			let x = this.#bars[i]["width"] + this.#paddings["left"] + this.#bar_gap*2;
+			let y = this.#bars[i]["y"];
+
+			this.#ctx.globalAlpha = 1;
+			this.#ctx.textBaseline = "middle";
+			this.#ctx.textAlign = "left";
+			this.#ctx.font = `1em ${this.#font_family}`;
+			this.#ctx.fillStyle = this.#text_color;
+
+			y += this.#bar_width/2 - this.#bar_gap/2;
+			this.#ctx.fillText(text, x, y);
+
+			y += this.#bar_width;
 		}
 	}
 
-	#drawLegends(){
-		const posY = this.#paddings.bottom + this.#padding / 2;
+	#draw_opacity(){
+		if(!("opacity" in this.#data) || this.#data["opacity"] != true) return;
+		this.#ctx.globalAlpha = 0.8;
+		this.#ctx.lineWidth = 3;
+	}
 
-		for (let i = 0; i < this.#data["data"].length; i++) {
-			let startX = i * this.#barWidth + this.#barWidth/2 + this.#paddings.left;
-			this.#ctx.textBaseline = "center";
-			this.#ctx.textAlign = "center";
-			this.#ctx.font = `${this.#fontSize}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;;
-			this.#ctx.fillText(this.#data["data"][i]["label"], startX + this.#barGap/2, posY);
+	#draw_x_axis_line(){
+		if(!("x_axis" in this.#data) || this.#data["x_axis"]["line"] == false) return;
+		if("color" in this.#data["x_axis"]) this.#x_axis_color = this.#data["x_axis"]["color"];
 
-			startX += this.#barWidth;
+		this.#ctx.beginPath();
+		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
+		this.#ctx.lineTo(this.#paddings["right"], this.#paddings.bottom);
+
+		this.#ctx.strokeStyle = this.#x_axis_color;
+		this.#ctx.lineWidth = 1;
+		this.#ctx.stroke();
+	}
+
+	#draw_x_axis_markers(){
+		if(this.#data["x_axis"]["markers"] != true) return;
+
+		for (let i = 0; i < this.#bars.length; i++) {
+			this.#ctx.textBaseline = "middle";
+			this.#ctx.font = `1em ${this.#font_family}`;
+			this.#ctx.fillStyle = this.#text_color;
+
+			if(this.#data["direction"] == "horizontal"){
+				let x = this.#bars[i]["x"] - this.#padding;
+				let y = this.#bars[i]["y"] + this.#bar_width/2;
+
+				this.#ctx.textAlign = "right";
+				this.#ctx.fillText(this.#bars[i]["label"], x, y);
+				y += this.#bar_width;
+			}else{
+				let x = this.#bars[i]["x"] + this.#bar_width/2 - this.#bar_gap*3;
+				let y = this.#bars[i]["y"] + this.#bars[i]["height"] + this.#padding;
+
+				if(this.#rotation_needed == true){
+					this.#ctx.save();
+					this.#ctx.translate(x, y);
+					this.#ctx.rotate(Math.PI / 2);
+					this.#ctx.textAlign = "left";
+					this.#ctx.fillText(this.#bars[i]["label"], 0, 0);
+					this.#ctx.restore();
+				}else{
+					this.#ctx.textAlign = "center";
+					this.#ctx.fillText(this.#bars[i]["label"], x, y);
+				}
+				x += this.#bar_width;
+			}
 		}
+	}
+
+	#draw_y_axis_line(){
+		if(!("y_axis" in this.#data) || this.#data["y_axis"]["line"] == false) return;
+		if("color" in this.#data["y_axis"]) this.#y_axis_color = this.#data["y_axis"]["color"];
+
+		this.#ctx.beginPath();
+		this.#ctx.moveTo(this.#paddings["left"], this.#paddings.bottom);
+		this.#ctx.lineTo(this.#paddings["left"], this.#paddings.top);
+
+		this.#ctx.strokeStyle = this.#y_axis_color;
+		this.#ctx.lineWidth = 1;
+		this.#ctx.stroke();
+		this.#ctx.closePath();
+	}
+
+	#draw_y_axis_markers(){
+		if(this.#data["y_axis"]["markers"] != true) return;
+
+		for (let i = 0; i < this.#y_axis_marker_count; i++) {
+			if(this.#data["direction"] == "horizontal"){
+				this.#ctx.textBaseline = "top";
+				this.#ctx.textAlign = "center";
+				this.#ctx.font = `1em ${this.#font_family}`;
+				this.#ctx.fillStyle = this.#text_color;
+
+				let value = (this.#max_value - i * this.#y_axis_step_value).toFixed(0)
+				this.#ctx.fillText(value, i * this.#gap_y_axis_markers + this.#paddings["right"] - (this.#gap_y_axis_markers * 2 * i), this.#paddings["bottom"] + this.#ctx.measureText(this.#max_value).width/2);
+			}else{
+				this.#ctx.textBaseline = "middle";
+				this.#ctx.textAlign = "center";
+				this.#ctx.font = `1em ${this.#font_family}`;
+				this.#ctx.fillStyle = this.#text_color;
+
+				let value = (this.#max_value - i * this.#y_axis_step_value).toFixed(0)
+				this.#ctx.fillText(value, this.#paddings["left"] - this.#ctx.measureText(this.#max_value).width, i * this.#gap_y_axis_markers + this.#padding);
+			}
+
+		}
+	}
+
+	#draw_y_axis_marker_lines(){
+		if(this.#data["y_axis"]["marker_lines"] != true) return;
+
+		this.#ctx.lineWidth = 0.5;
+		for (let i = 0; i < this.#y_axis_marker_count; i++) {
+			if(this.#data["direction"] == "horizontal"){
+				this.#ctx.beginPath();
+				this.#ctx.moveTo(this.#gap_y_axis_markers * i + this.#paddings["right"] - (this.#gap_y_axis_markers * 2 * i), this.#paddings["top"]);
+				this.#ctx.lineTo(this.#gap_y_axis_markers * i + this.#paddings["right"] - (this.#gap_y_axis_markers * 2 * i), this.#paddings["bottom"]);
+				this.#ctx.stroke();
+			}else{
+				this.#ctx.beginPath();
+				this.#ctx.moveTo(this.#paddings["left"], this.#gap_y_axis_markers * i + this.#padding);
+				this.#ctx.lineTo(this.#paddings["right"], this.#gap_y_axis_markers * i + this.#padding);
+				this.#ctx.stroke();
+			}
+
+		}
+	}
+
+	#init_on_hover_pie(){
+		this.#canvas.addEventListener("mousemove", (event)=>{
+			const rect = this.#canvas.getBoundingClientRect();
+			const x = event.clientX - rect.left;
+			const y = event.clientY - rect.top;
+
+			let needs_redraw = false;
+			let hovered_bar= null;
+			for(const bar of this.#bars){
+				const is_hovered = x >= bar.x && x <= bar.x + bar.width && y >= bar.y && y <= bar.y + bar.height;
+
+				if(bar.hovered !== is_hovered){
+					bar.hovered = is_hovered;
+					needs_redraw = true;
+				}
+
+				if(is_hovered == true) hovered_bar = bar;
+			}
+
+			if(hovered_bar != null){
+				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
+
+				let text = hovered_bar["value"];
+				if(this.#data["bar"]["percentage"] == true && this.#data["bar"]["values"]){
+					text = `${hovered_bar["value"]} (${hovered_bar["percent"]})%`;
+				}else if(this.#data["bar"]["percentage"] == true){
+					text = `${hovered_bar["percent"]}%`;
+				}
+
+				this.#tooltip.style.display = "block";
+				this.#tooltip.style.left = event.pageX + "px";
+				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
+				this.#tooltip.textContent = `${hovered_bar.label}: ${text}`;
+			}else this.#tooltip.style.display = "none";
+
+			if(needs_redraw) this.#init_draw_canvas();
+		});
 	}
 }
 
-window.customElements.define('x-bar-chart', Bar);
+window.customElements.define("x-bar-chart", Bar);
