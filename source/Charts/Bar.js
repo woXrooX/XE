@@ -187,6 +187,7 @@ export default class Bar extends HTMLElement {
 				this.#paddings["bottom"] -= max_value_width;
 				this.#bar_scale = (this.#canvas_DPI_height - this.#padding * 2 - max_value_width) / this.#max_value;
 
+				this.#rotation_needed = false;
 				for(const bar of this.#data["bars"]) if(this.#ctx.measureText(bar["label"]).width*2 >= this.#bar_width) this.#rotation_needed = true;
 				if(this.#rotation_needed == true){
 					this.#paddings["bottom"] -= longest_label_width*2 + this.#padding;
@@ -330,7 +331,7 @@ export default class Bar extends HTMLElement {
 				this.#ctx.fillText(this.#bars[i]["label"], x, y);
 				y += this.#bar_width;
 			}else{
-				let x = this.#bars[i]["x"] + this.#bar_width/2 - this.#bar_gap*3;
+				let x = this.#bars[i]["x"] + this.#bar_width/2;
 				let y = this.#bars[i]["y"] + this.#bars[i]["height"] + this.#padding;
 
 				if(this.#rotation_needed == true){
