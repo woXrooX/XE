@@ -224,15 +224,15 @@ export default class Bar extends HTMLElement {
 			let bar_value = this.#data["bars"][i]["value"] > 0 ? this.#data["bars"][i]["value"] : 0;
 
 			if(this.#data["direction"] == "y"){
-				y = i * this.#bar_width + (this.#bar_gap * 2) + this.#paddings["top"];
+				y = i * this.#bar_width + this.#bar_gap + this.#paddings["top"];
 				x = this.#paddings["left"];
-				height = this.#bar_width;
+				height = this.#bar_width - this.#bar_gap;
 				width = bar_value * this.#bar_scale;
 			}else{
-				x = i * this.#bar_width + (this.#bar_gap * 2) + this.#paddings["left"];
+				x = i * this.#bar_width + this.#bar_gap + this.#paddings["left"];
 				y = this.#paddings["bottom"] - (bar_value * this.#bar_scale);
 				height = bar_value * this.#bar_scale;
-				width = this.#bar_width;
+				width = this.#bar_width - this.#bar_gap;
 			}
 
 			const index_of_this_value = sorted_bar_values.indexOf(this.#data["bars"][i]["value"]);
@@ -255,27 +255,11 @@ export default class Bar extends HTMLElement {
 	}
 
 	#draw_bars(){
-		let x = 0;
-		let y = 0;
-		let width = 0;
-		let height = 0;
 		for(const bar of this.#bars){
-			if(this.#data["direction"] == "y"){
-				width = bar["width"];
-				height = bar["height"] - this.#bar_gap;
-				x = bar["x"];
-				y = bar["y"];
-			}else{
-				width = bar["width"] - this.#bar_gap;
-				height = bar["height"];
-				x = bar["x"] - (this.#bar_gap * 2);
-				y = bar["y"];
-			}
-
 			this.#ctx.beginPath()
 			this.#ctx.fillStyle = bar["color"];
 			this.#ctx.strokeStyle = bar["color"];
-			this.#ctx.roundRect(x, bar["y"], width, height, this.#border_radius);
+			this.#ctx.roundRect(bar["x"], bar["y"], bar["width"], bar["height"], this.#border_radius);
 			this.#ctx.fill()
 			this.#ctx.stroke()
 			this.#ctx.closePath()
