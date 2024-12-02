@@ -212,13 +212,9 @@ export default class Pie extends HTMLElement {
 		let y = this.#padding;
 		let value = '';
 		for(const slice of this.#slices){
-			if(this.#data["value"] == true && this.#data["percentage"] == true){
-				value = `${slice["value"]} (${slice["percent"]})%`;
-			}else if(this.#data["percentage"] == true){
-				value = `${slice["percent"]}%`;
-			}else{
-				value = slice["value"];
-			}
+			if(this.#data["values"]["numeric"] == true && this.#data["values"]["percentage"] == true) value = `: ${slice["value"]} (${slice["percent"]})%`;
+			else if(this.#data["values"]["percentage"] == true) value = `: ${slice["percent"]}%`;
+			else if(this.#data["values"]["numeric"] == true) value = `: ${slice["value"]}`;
 
 			this.#ctx.beginPath();
 			this.#ctx.roundRect(this.#padding, y, 30, 20, 5);
@@ -226,7 +222,7 @@ export default class Pie extends HTMLElement {
 			this.#ctx.fill();
 
 			this.#ctx.fillStyle = this.#text_color;
-			this.#ctx.fillText(`${slice["label"]}: ${value}`, 60, y+5);
+			this.#ctx.fillText(`${slice["label"]}${value}`, 60, y+5);
 
 			y += 30;
 		}
@@ -257,18 +253,14 @@ export default class Pie extends HTMLElement {
 				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
 				let value = '';
 
-				if(this.#data["value"] == true && this.#data["percentage"] == true){
-					value = `${hovered_slice["value"]} (${hovered_slice["percent"]})%`;
-				}else if(this.#data["percentage"] == true){
-					value = `${hovered_slice["percent"]}%`;
-				}else{
-					value = hovered_slice["value"];
-				}
+				if(this.#data["values"]["numeric"] == true && this.#data["values"]["percentage"] == true) value = `: ${hovered_slice["value"]} (${hovered_slice["percent"]})%`;
+				else if(this.#data["values"]["percentage"] == true) value = `: ${hovered_slice["percent"]}%`;
+				else if(this.#data["values"]["numeric"] == true) value = `: ${hovered_slice["value"]}`;
 
 				this.#tooltip.style.display = "block";
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `${hovered_slice.label}: ${value}`;
+				this.#tooltip.textContent = `${hovered_slice.label}${value}`;
 			}else this.#tooltip.style.display = "none";
 
 			if(needs_redraw) this.#init_draw_canvas();
