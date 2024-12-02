@@ -153,15 +153,13 @@ export default class Bar extends HTMLElement {
 			this.#bar_scale = (this.#canvas_DPI_width - this.#padding * 2) / this.#max_value;
 
 			let bar_text_width = 0;
-			if(this.#data["bar"]["percentage"] == true && this.#data["bar"]["values"]){
-				bar_text_width = (max_value_width * 2) + 80;
-			}else if(this.#data["bar"]["percentage"] == true){
-				bar_text_width = 50;
-			}else{
-				bar_text_width = max_value_width * 2;
+			if("values" in this.#data["bar"]){
+				if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) bar_text_width = (max_value_width * 2) + 80;
+				else if(this.#data["bar"]["values"]["percentage"] == true) bar_text_width = 50;
+				else if(this.#data["bar"]["values"]["numeric"] == true) bar_text_width = max_value_width * 2;
 			}
 
-			if(this.#data["bar"]["values"] == true || this.#data["bar"]["percentage"] == true){
+			if(this.#data["bar"]["values"]["numeric"] == true || this.#data["bar"]["values"]["percentage"] == true){
 				this.#paddings["right"] -= bar_text_width;
 				this.#bar_scale = (this.#canvas_DPI_width - this.#padding * 2 - bar_text_width) / this.#max_value;
 			}
@@ -170,7 +168,7 @@ export default class Bar extends HTMLElement {
 				this.#paddings["left"] += longest_label_width*2 + this.#padding;
 				this.#bar_scale = (this.#canvas_DPI_width - this.#paddings["left"] - this.#padding) / this.#max_value;
 
-				if(this.#data["bar"]["values"] == true || this.#data["bar"]["percentage"] == true)
+				if(this.#data["bar"]["values"]["numeric"] == true || this.#data["bar"]["values"]["percentage"] == true)
 					this.#bar_scale = (this.#canvas_DPI_width - this.#paddings["left"] - this.#padding - bar_text_width) / this.#max_value;
 			}
 
@@ -240,6 +238,15 @@ export default class Bar extends HTMLElement {
 			const saturation = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
 			const lightness = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
 
+			let bar_percentage = ((this.#data["bars"][i]["value"] / this.#total_value) * 100).toFixed(1);
+
+			let display_value = '';
+			if("values" in this.#data["bar"]){
+				if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) display_value = `${this.#data["bars"][i]["value"]} (${bar_percentage})%`;
+				else if(this.#data["bar"]["values"]["percentage"] == true) display_value = `${bar_percentage}%`;
+				else if(this.#data["bar"]["values"]["numeric"] == true) display_value = `${this.#data["bars"][i]["value"]}`;
+			}
+
 			this.#bars.push({
 				x: x,
 				y: y,
@@ -247,7 +254,7 @@ export default class Bar extends HTMLElement {
 				height: height,
 				label: this.#data["bars"][i]["label"],
 				value: this.#data["bars"][i]["value"],
-				percent: ((this.#data["bars"][i]["value"] / this.#total_value) * 100).toFixed(1),
+				display_value: display_value,
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				hovered: false,
 				radius: this.#border_radius
@@ -268,18 +275,10 @@ export default class Bar extends HTMLElement {
 	}
 
 	#draw_bar_values(){
-		if(this.#data["direction"] != "y" || this.#data["bar"]["values"] != true && this.#data["bar"]["percentage"] != true) return;
+		if(this.#data["direction"] != "y") return;
+		if(!("values" in this.#data["bar"]) || this.#data["bar"]["values"]["numeric"] == false && this.#data["bar"]["values"]["percentage"] == false) return;
 
 		for(let i = 0; i < this.#bars.length; i++){
-			let text = '';
-			if(this.#data["bar"]["percentage"] == true && this.#data["bar"]["values"]){
-				text = `${this.#bars[i]["value"]} (${this.#bars[i]["percent"]})%`;
-			}else if(this.#data["bar"]["percentage"] == true){
-				text = `${this.#bars[i]["percent"]}%`;
-			}else{
-				text = this.#bars[i]["value"];
-			}
-
 			let x = this.#bars[i]["width"] + this.#paddings["left"] + this.#bar_gap*2;
 			let y = this.#bars[i]["y"];
 
@@ -290,7 +289,7 @@ export default class Bar extends HTMLElement {
 			this.#ctx.fillStyle = this.#text_color;
 
 			y += this.#bar_width/2 - this.#bar_gap/2;
-			this.#ctx.fillText(text, x, y);
+			this.#ctx.fillText(this.#bars[i]["display_value"], x, y);
 
 			y += this.#bar_width;
 		}
@@ -432,18 +431,10 @@ export default class Bar extends HTMLElement {
 
 			if(hovered_bar != null){
 				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
-
-				let text = hovered_bar["value"];
-				if(this.#data["bar"]["percentage"] == true && this.#data["bar"]["values"]){
-					text = `${hovered_bar["value"]} (${hovered_bar["percent"]})%`;
-				}else if(this.#data["bar"]["percentage"] == true){
-					text = `${hovered_bar["percent"]}%`;
-				}
-
 				this.#tooltip.style.display = "block";
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `${hovered_bar.label}: ${text}`;
+				this.#tooltip.textContent = `${hovered_bar.label} ${hovered_bar["display_value"]}`;
 			}else this.#tooltip.style.display = "none";
 
 			if(needs_redraw) this.#init_draw_canvas();
