@@ -65,7 +65,7 @@ export default class Pie extends HTMLElement {
 		this.#resize_observer();
 	}
 
-	disconnectedCallback(){	cancelAnimationFrame(this.#animation_frame); }
+	disconnectedCallback(){ cancelAnimationFrame(this.#animation_frame); }
 
 	////// APIs
 	#resize_observer(){
@@ -78,7 +78,7 @@ export default class Pie extends HTMLElement {
 		this.#init_values();
 		this.#init_slices();
 		this.#init_draw_canvas();
-		this.#init_on_hover_pie();
+		this.#init_on_hover_slice();
 	}
 
 	////// Helpers
@@ -136,15 +136,24 @@ export default class Pie extends HTMLElement {
 			const saturation = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
 			const lightness = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
 
+			let slice_percentage = ((slice["value"] / this.#total_value) * 100).toFixed(2);
+
+			let display_value = '';
+			if("values" in this.#data){
+				if(this.#data["values"]["numeric"] == true && this.#data["values"]["percentage"] == true) display_value = `: ${slice["value"]} (${slice_percentage})%`;
+				else if(this.#data["values"]["percentage"] == true) display_value = `: ${slice_percentage}%`;
+				else if(this.#data["values"]["numeric"] == true) display_value = `: ${slice["value"]}`;
+			}
+
 			this.#slices.push({
 				start: start_angle,
 				end: start_angle + slice_angle,
 				label: slice["label"],
 				value: slice["value"],
-				percent: ((slice["value"] / this.#total_value) * 100).toFixed(2),
+				display_value: display_value,
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				hovered: false,
-				current_radius: this.#pie_radius  // Initialize here
+				current_radius: this.#pie_radius
 			});
 			start_angle += slice_angle;
 		}
@@ -217,13 +226,13 @@ export default class Pie extends HTMLElement {
 			this.#ctx.fill();
 
 			this.#ctx.fillStyle = this.#text_color;
-			this.#ctx.fillText(`${slice["label"]}: ${slice["value"]} (${slice["percent"]}%)`, 60, y+5);
+			this.#ctx.fillText(`${slice["label"]}${slice["display_value"]}`, 60, y+5);
 
 			y += 30;
 		}
 	}
 
-	#init_on_hover_pie(){
+	#init_on_hover_slice(){
 		this.#canvas.addEventListener("mousemove", (event)=>{
 			const rect = this.#canvas.getBoundingClientRect();
 			const x = event.clientX - rect.left - this.#x_center;
@@ -249,7 +258,7 @@ export default class Pie extends HTMLElement {
 				this.#tooltip.style.display = "block";
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `${hovered_slice.label}: ${hovered_slice.value} (${hovered_slice["percent"]}%)`;
+				this.#tooltip.textContent = `${hovered_slice.label}${hovered_slice["display_value"]}`;
 			}else this.#tooltip.style.display = "none";
 
 			if(needs_redraw) this.#init_draw_canvas();
