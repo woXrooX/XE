@@ -130,7 +130,6 @@ export default class Bar_y extends HTMLElement {
 		if("text_color" in this.#data) this.#text_color = this.#data["text_color"];
 		if("hue" in this.#data) this.#hue = this.#data["hue"];
 		if("font_family" in this.#data) this.#font_family = this.#data["font_family"];
-		if("background" in this.#data) this.#canvas.style.background = this.#data["background"];
 
 		this.#paddings = {
 			top: this.#padding,
