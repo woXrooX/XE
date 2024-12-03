@@ -13,9 +13,9 @@ export default class Bar_x extends HTMLElement {
 	#max_value = 0;
 	#padding = 20;
 	#paddings = {};
-	#y_axis_marker_count = 5;
-	#y_axis_marker_gap = 0;
-	#y_axis_step_value = 0;
+	#x_axis_marker_count = 5;
+	#x_axis_marker_gap = 0;
+	#x_axis_step_value = 0;
 
 	#bars = [];
 	#total_value = 0;
@@ -90,7 +90,7 @@ export default class Bar_x extends HTMLElement {
 
 		this.#draw_x_axis_markers();
 		this.#draw_y_axis_markers();
-		this.#draw_y_axis_marker_lines();
+		this.#draw_y_axis_grid_lines();
 
 		this.#draw_bars();
 		this.#draw_bar_values();
@@ -181,25 +181,25 @@ export default class Bar_x extends HTMLElement {
 			this.#bar_scale = (raw_bar_area_width - bar_value_text_width - this.#padding) / this.#max_value;
 		}
 
-		// If x_axis values are true, make space
-		if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true){
+		// If y_axis values are true, make space
+		if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true){
 			this.#paddings["left"] += longest_label_text_width;
 			this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] + this.#padding) / this.#max_value;
 
-			// If both x_axis values and bar values are true, make space for both of them
+			// If both y_axis values and bar values are true, make space for both of them
 			if(bar_value_text_width > 0) this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] - bar_value_text_width) / this.#max_value;
 		}
 
 		// If y_axis markers are true, make space
-		if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true) this.#paddings["bottom"] -= max_numeric_value_text_width + this.#padding;
+		if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true) this.#paddings["bottom"] -= max_numeric_value_text_width + this.#padding;
 
 		// calc bar width, based on value after removing top-bottom padding, and gaps
 		this.#bar_width = (this.#paddings["bottom"] - this.#paddings["top"] - this.#bar_gap) / this.#data["bars"].length;
 
-		// y_axis markers gap, based on bar area width (which is after removin left-right paddings)
+		// x_axis markers gap, based on bar area width (which is after removing left-right paddings)
 		// marker count - 1 to make space for 0.
-		this.#y_axis_marker_gap = (this.#paddings["right"] - this.#paddings["left"]) / (this.#y_axis_marker_count - 1);
-		this.#y_axis_step_value = this.#max_value / (this.#y_axis_marker_count - 1);
+		this.#x_axis_marker_gap = (this.#paddings["right"] - this.#paddings["left"]) / (this.#x_axis_marker_count - 1);
+		this.#x_axis_step_value = this.#max_value / (this.#x_axis_marker_count - 1);
 
 		// If sorted
 		if(this.#data["sorted"] == true) this.#data["bars"].sort((a, b) => b["value"] - a["value"]);
@@ -219,7 +219,7 @@ export default class Bar_x extends HTMLElement {
 
 		this.#bars = [];
 		for(let i = 0; i < this.#data["bars"].length; i++){
-			// prevent minus values
+			// Prevent minus values
 			let bar_value = this.#data["bars"][i]["value"] > 0 ? this.#data["bars"][i]["value"] : 0;
 
 			let y = i * this.#bar_width + this.#bar_gap + this.#paddings["top"];
@@ -301,17 +301,17 @@ export default class Bar_x extends HTMLElement {
 	#draw_x_axis_markers(){
 		if(this.#data["x_axis"]["markers"] != true) return;
 
-		for (const bar of this.#bars) {
-			let x = bar["x"] - this.#padding;
-			let y = bar["y"] + this.#bar_width/2;
-
-			this.#ctx.textBaseline = "middle";
-			this.#ctx.textAlign = "right";
+		for (let i = 0; i < this.#x_axis_marker_count; i++) {
+			this.#ctx.textBaseline = "top";
+			this.#ctx.textAlign = "center";
 			this.#ctx.font = `1em ${this.#font_family}`;
 			this.#ctx.fillStyle = this.#text_color;
-			this.#ctx.fillText(bar["label"], x, y);
 
-			y += this.#bar_width;
+			let value = (this.#max_value - i * this.#x_axis_step_value).toFixed(0);
+			let x = this.#paddings["right"] - (this.#x_axis_marker_gap * i);
+			let y = this.#paddings["bottom"] + this.#padding;
+
+			this.#ctx.fillText(value, x, y);
 		}
 	}
 
@@ -332,28 +332,28 @@ export default class Bar_x extends HTMLElement {
 	#draw_y_axis_markers(){
 		if(this.#data["y_axis"]["markers"] != true) return;
 
-		for (let i = 0; i < this.#y_axis_marker_count; i++) {
-			this.#ctx.textBaseline = "top";
-			this.#ctx.textAlign = "center";
+		for (const bar of this.#bars) {
+			let x = bar["x"] - this.#padding;
+			let y = bar["y"] + this.#bar_width/2;
+
+			this.#ctx.textBaseline = "middle";
+			this.#ctx.textAlign = "right";
 			this.#ctx.font = `1em ${this.#font_family}`;
 			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillText(bar["label"], x, y);
 
-			let value = (this.#max_value - i * this.#y_axis_step_value).toFixed(0);
-			let x = this.#paddings["right"] - (this.#y_axis_marker_gap * i);
-			let y = this.#paddings["bottom"] + this.#padding;
-
-			this.#ctx.fillText(value, x, y);
+			y += this.#bar_width;
 		}
 	}
 
-	#draw_y_axis_marker_lines(){
-		if(this.#data["y_axis"]["marker_lines"] != true) return;
+	#draw_y_axis_grid_lines(){
+		if(this.#data["y_axis"]["grid_lines"] != true) return;
 
 		this.#ctx.lineWidth = 0.5;
 		this.#ctx.strokeStyle = this.#y_axis_color;
 
-		for (let i = 0; i < this.#y_axis_marker_count; i++) {
-			let x = this.#paddings["right"] - (this.#y_axis_marker_gap * i);
+		for (let i = 0; i < this.#x_axis_marker_count; i++) {
+			let x = this.#paddings["right"] - (this.#x_axis_marker_gap * i);
 
 			this.#ctx.beginPath();
 			this.#ctx.moveTo(x, this.#paddings["top"]);
@@ -369,11 +369,7 @@ export default class Bar_x extends HTMLElement {
 			const y = event.clientY - rect.top;
 
 			let hovered_bar= null;
-			for(const bar of this.#bars){
-				const is_hovered = x >= bar.x && x <= bar.x + bar.width && y >= bar.y && y <= bar.y + bar.height;
-
-				if(is_hovered == true) hovered_bar = bar;
-			}
+			for(const bar of this.#bars) if(x >= bar.x && x <= bar.x + bar.width && y >= bar.y && y <= bar.y + bar.height) hovered_bar = bar;
 
 			if(hovered_bar != null){
 				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
@@ -381,7 +377,9 @@ export default class Bar_x extends HTMLElement {
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
 				this.#tooltip.textContent = `${hovered_bar.label} ${hovered_bar["display_value"]}`;
-			}else this.#tooltip.style.display = "none";
+			}
+
+			else this.#tooltip.style.display = "none";
 		});
 	}
 }
