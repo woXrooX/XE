@@ -2,219 +2,254 @@ export default class Line extends HTMLElement{
 	#data;
 	#canvas;
 	#ctx;
+	#tooltip;
 
-	#textColor = "black";
-	#gridColor = "gray";
-	#mainAxisColor ="black";
-	#fontSize = 11;
+	#text_color = "black";
+	#grid_color = "gray";
+	#main_axis_color ="black";
+	#font_size = 11;
 
 	#padding = 50;
 	#paddings;
-	#minValue = Infinity;
-	#maxValue = -Infinity;
-	#longestDataset = 0;
-	#gapXAxis = 0;
-	#gapYAxis = 0;
-	#scaleY;
-	#markerSize = 10;
-	#markerCountYAxis = 10;
-	#YAxisStepValue;
-	#circleRad = 4;
-	#gridLineWidth = 0.1;
-	#parentElement = null;
+	#min_value = Infinity;
+	#max_value = -Infinity;
+	#longest_dataset = 0;
+	#gap_x_axis = 0;
+	#gap_y_axis = 0;
+	#scale_y;
+	#marker_size = 10;
+	#marker_count_y_axis = 10;
+	#y_axis_step_value;
+	#circle_rad = 4;
+	#grid_line_width = 0.1;
+
+	#canvas_DPI_width = 0;
+	#canvas_DPI_height = 0;
 
 	constructor(){
 		super();
 
 		this.shadow = this.attachShadow({mode: 'closed'});
 		this.#data = JSON.parse(this.innerHTML);
-		this.#parentElement = this.parentNode;
 
 		// Style element
 		const style = document.createElement('style');
 		style.textContent = `
+			:host{
+				display: inline-block;
+				width: 100%;
+				height: 100%;
+				max-width: 100dvw;
+				max-height: 100dvh;
+			}
 			canvas{
-				max-width: 100vw;
-				max-height: 100vh;
+				width: 100%;
+				height: 100%;
+			}
+			div#XE_charts_line_tooltip{
+				position: absolute;
+				display: none;
+				background-color: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 5px;
+				border-radius: 5px;
+				pointer-events: none;
+				font-size: 0.7em;
 			}
 		`;
 		this.shadow.appendChild(style);
+
+		// Tooltip element
+		this.#tooltip = document.createElement("div");
+		this.#tooltip.setAttribute("id", "XE_charts_line_tooltip");
+		this.shadow.appendChild(this.#tooltip);
 
 		// Canvas element
 		this.shadow.appendChild(document.createElement("canvas"));
 		this.#canvas = this.shadow.querySelector("canvas");
 		this.#ctx = this.#canvas.getContext('2d');
 
-		this.#resizeObserver();
+		this.#resize_observer();
+
+		this.#init_on_hover_points();
 	}
 
 	////// APIs
-	#resizeObserver(){
-		const resizeObserver = new ResizeObserver(this.#draw);
-		resizeObserver.observe(this.#parentElement);
+	#resize_observer(){
+		const resize_observer_object = new ResizeObserver(this.#draw);
+		resize_observer_object.observe(this.parentNode);
 	}
 
 	#draw = ()=>{
-		this.#updateColors();
-		this.#setUpCanvas();
-		this.#setValues();
+		this.#update_colors();
+		this.#set_up_canvas();
+		this.#set_values();
 
-		this.#drawTitle();
-
-		if("legends" in this.#data && this.#data["legends"] === true) this.#drawLegends();
+		if("legends" in this.#data && this.#data["legends"] === true) this.#draw_legends();
 		if("grid" in this.#data){
-			if("horizontal" in this.#data["grid"] && this.#data["grid"]["horizontal"]) this.#drawXLines();
-			if("vertical" in this.#data["grid"] && this.#data["grid"]["vertical"]) this.#drawYLines();
+			if("horizontal" in this.#data["grid"] && this.#data["grid"]["horizontal"]) this.#draw_x_lines();
+			if("vertical" in this.#data["grid"] && this.#data["grid"]["vertical"]) this.#draw_y_lines();
 		}
 
-		if("fillType" in this.#data){
-			if(this.#data["fillType"] === "plain" || this.#data["fillType"] === "opacity") this.#drawOpacityOrPlainBackground();
-			if(this.#data["fillType"] === "gradient") this.#drawGradientBackground();
+		if("fill_type" in this.#data){
+			if(this.#data["fill_type"] === "plain" || this.#data["fill_type"] === "opacity") this.#draw_opacity_or_plain_background();
+			if(this.#data["fill_type"] === "gradient") this.#draw_gradient_background();
 		}
 
-		if("xAxis" in this.#data && "label" in this.#data["xAxis"] && this.#data["xAxis"]["label"]){
-			this.#drawMainXAxis();
-			this.#drawMarkersXAxis();
+		if("x_axis" in this.#data && "label" in this.#data["x_axis"] && this.#data["x_axis"]["label"]){
+			this.#draw_main_x_axis();
+			this.#draw_markers_x_axis();
 		}
 
-		if("yAxis" in this.#data && "label" in this.#data["yAxis"] && this.#data["yAxis"]["label"]){
-			this.#drawMainYAxis();
-			this.#drawMarkersYAxis();
+		if("y_axis" in this.#data && "label" in this.#data["y_axis"] && this.#data["y_axis"]["label"]){
+			this.#draw_main_y_axis();
+			this.#draw_markers_y_axis();
 		}
 
-		this.#drawLines();
-		if("dataPoints" in this.#data && this.#data["dataPoints"] === true) this.#drawCircle();
+		this.#draw_lines();
+		if("data_points" in this.#data && this.#data["data_points"] === true) this.#draw_circle();
 	}
 
 	////// Helpers
-	#updateColors(){
-		this.#textColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
-		this.#gridColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary");
-		this.#mainAxisColor = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+	#update_colors(){
+		this.#text_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+		this.#grid_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary");
+		this.#main_axis_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
 	}
 
-	#setUpCanvas(){
-		this.#canvas.width = this.#parentElement.clientWidth;
-		this.#canvas.height = this.#parentElement.clientWidth / 2;
-		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+	#set_up_canvas(){
+		const DPR = window.devicePixelRatio || 1;
+
+		// First set CSS dimensions
+		this.#canvas.style.width = '100%';
+		this.#canvas.style.height = '100%';
+
+		// Get the size in CSS pixels after CSS is applied
+		const computed_style = getComputedStyle(this.#canvas);
+		const css_width = parseFloat(computed_style.width);
+		const css_height = parseFloat(computed_style.height);
+
+		// Get the sizes before DPI scaling for calcs
+		this.#canvas_DPI_width = css_width;
+		this.#canvas_DPI_height = css_height;
+
+		// Adjust canvas buffer size for DPR
+		this.#canvas.width = css_width * DPR;
+		this.#canvas.height = css_height * DPR;
+
+		// Scale the context for DPR
+		this.#ctx.scale(DPR, DPR);
 	}
 
-	#setValues(){
+	#set_values(){
 		// Marker count Y axis
-		if("yAxis" in this.#data && "markerCount" in this.#data["yAxis"]) this.#markerCountYAxis = this.#data["yAxis"]["markerCount"];
+		if("y_axis" in this.#data && "marker_count" in this.#data["y_axis"]) this.#marker_count_y_axis = this.#data["y_axis"]["marker_count"];
 
 		// Finding min max
 		for(let i = 0; i < this.#data["data"].length; i++){
 			const min = Math.min(...this.#data["data"][i]["values"]);
 			const max = Math.max(...this.#data["data"][i]["values"]);
-			if(min < this.#minValue) this.#minValue = min;
-			if(max > this.#maxValue) this.#maxValue = max;
+			if(min < this.#min_value) this.#min_value = min;
+			if(max > this.#max_value) this.#max_value = max;
 
 			// Longest dataset
-			if(this.#data["data"][i]["values"].length > this.#longestDataset) this.#longestDataset = this.#data["data"][i]["values"].length;
+			if(this.#data["data"][i]["values"].length > this.#longest_dataset) this.#longest_dataset = this.#data["data"][i]["values"].length;
 		}
 
 		this.#paddings = {
 			top: this.#padding,
-			right: this.#canvas.width - this.#padding,
-			bottom: this.#canvas.height - this.#padding,
+			right: this.#canvas_DPI_width - this.#padding,
+			bottom: this.#canvas_DPI_height - this.#padding,
 			left: this.#padding
 		};
 
-		this.#gapXAxis = (this.#paddings.right - this.#padding) / (this.#longestDataset - 1);
-		this.#gapYAxis = (this.#paddings.bottom - this.#padding) / (this.#markerCountYAxis - 1);
-		this.#scaleY = (this.#canvas.height - this.#padding * 2) / (this.#maxValue - this.#minValue);
+		this.#gap_x_axis = (this.#paddings.right - this.#padding) / (this.#longest_dataset - 1);
+		this.#gap_y_axis = (this.#paddings.bottom - this.#padding) / (this.#marker_count_y_axis - 1);
+		this.#scale_y = (this.#canvas_DPI_height - this.#padding * 2) / (this.#max_value - this.#min_value);
 
-		this.#YAxisStepValue = (this.#maxValue - this.#minValue) / (this.#markerCountYAxis - 1);
+		this.#y_axis_step_value = (this.#max_value - this.#min_value) / (this.#marker_count_y_axis - 1);
 	}
 
-	#drawTitle(){
-		this.#ctx.fillStyle = this.#textColor;
-		this.#ctx.textAlign = "center";
-		this.#ctx.font = "bold 16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-		this.#ctx.fillText(this.#data.title, this.#canvas.width / 2, this.#paddings.top / 2);
-	}
-
-	#drawMainXAxis(){
+	#draw_main_x_axis(){
 		this.#ctx.beginPath();
 
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#mainAxisColor;
+		this.#ctx.strokeStyle = this.#main_axis_color;
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
 
-	#drawMainYAxis(){
+	#draw_main_y_axis(){
 		this.#ctx.beginPath();
 
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
 		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#mainAxisColor;
+		this.#ctx.strokeStyle = this.#main_axis_color;
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
 
-	#drawMarkersXAxis(){
-		for(let i = 0; i < this.#longestDataset; i++){
-			const x = i * this.#gapXAxis + this.#padding;
+	#draw_markers_x_axis(){
+		for(let i = 0; i < this.#longest_dataset; i++){
+			const x = i * this.#gap_x_axis + this.#padding;
 
 			this.#ctx.textAlign = "center";
 			this.#ctx.font = " 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-			this.#ctx.fillStyle = this.#textColor;
-			this.#ctx.fillText(i, x, this.#paddings.bottom + this.#markerSize * 1.5);
+			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillText(i, x, this.#paddings.bottom + this.#marker_size * 1.5);
 		}
 	}
 
-	#drawMarkersYAxis(){
-		for(let i = 0; i < this.#markerCountYAxis; i++){
+	#draw_markers_y_axis(){
+		for(let i = 0; i < this.#marker_count_y_axis; i++){
 			this.#ctx.textAlign = "right";
-			this.#ctx.fillStyle = this.#textColor;
+			this.#ctx.fillStyle = this.#text_color;
 			this.#ctx.font = " 11px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif"
 			this.#ctx.textBaseline = "middle";
-			this.#ctx.fillText((this.#maxValue - i * this.#YAxisStepValue).toFixed(1), this.#paddings.left - this.#markerSize * 1.5, i * this.#gapYAxis + this.#padding);
+			this.#ctx.fillText((this.#max_value - i * this.#y_axis_step_value).toFixed(1), this.#paddings.left - this.#marker_size * 1.5, i * this.#gap_y_axis + this.#padding);
 		}
 	}
 
-	#drawXLines(){
-		this.#ctx.strokeStyle = this.#gridColor;
-		this.#ctx.lineWidth = this.#gridLineWidth;
+	#draw_x_lines(){
+		this.#ctx.strokeStyle = this.#grid_color;
+		this.#ctx.lineWidth = this.#grid_line_width;
 
-		for (let i = 0; i < this.#markerCountYAxis; i++) {
+		for (let i = 0; i < this.#marker_count_y_axis; i++) {
 			this.#ctx.beginPath();
-			this.#ctx.moveTo(this.#paddings.left - this.#markerSize, this.#gapYAxis * i + this.#padding);
-			this.#ctx.lineTo(this.#paddings.right, this.#gapYAxis * i + this.#padding);
+			this.#ctx.moveTo(this.#paddings.left - this.#marker_size, this.#gap_y_axis * i + this.#padding);
+			this.#ctx.lineTo(this.#paddings.right, this.#gap_y_axis * i + this.#padding);
 			this.#ctx.stroke();
 		}
 	}
 
-	#drawYLines(){
-		this.#ctx.strokeStyle = this.#gridColor;
-		this.#ctx.lineWidth = this.#gridLineWidth;
+	#draw_y_lines(){
+		this.#ctx.strokeStyle = this.#grid_color;
+		this.#ctx.lineWidth = this.#grid_line_width;
 
-		for(let i = 0; i < this.#longestDataset; i++){
-			const x = i * this.#gapXAxis + this.#padding;
+		for(let i = 0; i < this.#longest_dataset; i++){
+			const x = i * this.#gap_x_axis + this.#padding;
 			this.#ctx.beginPath();
 			this.#ctx.moveTo(x, this.#paddings.top);
-			this.#ctx.lineTo(x, this.#paddings.bottom + this.#markerSize);
+			this.#ctx.lineTo(x, this.#paddings.bottom + this.#marker_size);
 			this.#ctx.stroke();
 		}
 	}
 
-	#drawLines(){
+	#draw_lines(){
 		this.#ctx.lineWidth = 2;
 
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
-			this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom - (this.#data["data"][i]["values"][0] - this.#minValue) * this.#scaleY);
-			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? this.#textColor;
+			this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom - (this.#data["data"][i]["values"][0] - this.#min_value) * this.#scale_y);
+			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? this.#text_color;
 
 			for(let j = 0; j < this.#data["data"][i]["values"].length; j++){
 				this.#ctx.lineTo(
-					j * this.#gapXAxis + this.#padding,
-					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#minValue) * this.#scaleY
+					j * this.#gap_x_axis + this.#padding,
+					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#min_value) * this.#scale_y
 				);
 			}
 
@@ -222,62 +257,36 @@ export default class Line extends HTMLElement{
 		}
 	}
 
-	#drawCircle(){
+	#draw_circle(){
 		for (let i = 0; i < this.#data["data"].length; i++) {
 			const values = this.#data["data"][i]["values"];
 
 			for(let j = 0; j < values.length; j++){
-				const x = j * this.#gapXAxis + this.#padding;
-				const y = this.#paddings.bottom - (values[j] - this.#minValue) * this.#scaleY;
+				const x = j * this.#gap_x_axis + this.#padding;
+				const y = this.#paddings.bottom - (values[j] - this.#min_value) * this.#scale_y;
 				this.#ctx.beginPath();
-				this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#textColor;
-				this.#ctx.arc(x, y, this.#circleRad, 0, Math.PI * 2);
+				this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#text_color;
+				this.#ctx.arc(x, y, this.#circle_rad, 0, Math.PI * 2);
 				this.#ctx.fill();
 			}
 		}
 	}
 
-	#drawColoredBackground(){
-		for(let i = 0; i < this.#data["data"].length; i++){
-			const values = this.#data["data"][i]["values"];
-
-			this.#ctx.beginPath();
-			this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom - (values[0] - this.#minValue) * this.#scaleY);
-			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? this.#textColor;
-
-			for(let j = 0; j <= values.length; j++){
-				const x = j * this.#gapXAxis + this.#padding;
-				const y = this.#paddings.bottom - (values[j] - this.#minValue) * this.#scaleY;
-				this.#ctx.lineTo(x, y);
-
-				if (j == values.length) {
-					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
-					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
-					this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#textColor;
-					this.#ctx.globalAlpha = 0.1
-					this.#ctx.closePath()
-				}
-			}
-			this.#ctx.fill();
-		}
-		this.#ctx.globalAlpha = 1
-	}
-
-	#drawOpacityOrPlainBackground(){
+	#draw_opacity_or_plain_background(){
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
 
 			for(let j = 0; j <= this.#data["data"][i]["values"].length; j++){
 				this.#ctx.lineTo(
-					j * this.#gapXAxis + this.#padding,
-					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#minValue) * this.#scaleY
+					j * this.#gap_x_axis + this.#padding,
+					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#min_value) * this.#scale_y
 				);
 
 				if(j == this.#data["data"][i]["values"].length){
 					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
-					this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#textColor;
-					this.#ctx.globalAlpha = this.#data["fillType"] === "plain" ? 1 : 0.1;
+					this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#text_color;
+					this.#ctx.globalAlpha = this.#data["fill_type"] === "plain" ? 1 : 0.1;
 					this.#ctx.closePath();
 				}
 			}
@@ -286,7 +295,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.globalAlpha = 1;
 	}
 
-	#drawGradientBackground(){
+	#draw_gradient_background(){
 		this.#ctx.globalAlpha = 0.5;
 
 		for(let i = 0; i < this.#data["data"].length; i++){
@@ -294,7 +303,7 @@ export default class Line extends HTMLElement{
 
 			const gradient = this.#ctx.createLinearGradient(
 				this.#padding,
-				this.#paddings.bottom - (Math.max(...this.#data["data"][i]["values"]) - this.#minValue) * this.#scaleY,
+				this.#paddings.bottom - (Math.max(...this.#data["data"][i]["values"]) - this.#min_value) * this.#scale_y,
 				// this.#paddings.top,
 				this.#padding,
 				this.#paddings.bottom
@@ -306,8 +315,8 @@ export default class Line extends HTMLElement{
 			for(let j = 0; j <= this.#data["data"][i]["values"].length; j++){
 
 				this.#ctx.lineTo(
-					j * this.#gapXAxis + this.#padding,
-					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#minValue) * this.#scaleY
+					j * this.#gap_x_axis + this.#padding,
+					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#min_value) * this.#scale_y
 				);
 
 				if(j == this.#data["data"][i]["values"].length){
@@ -323,7 +332,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.globalAlpha = 1;
 	}
 
-	#drawLegends(){
+	#draw_legends(){
 		const rectWidth = 20;
 		const rectHeight = 10;
 		const gap = 30;
@@ -331,7 +340,7 @@ export default class Line extends HTMLElement{
 		const posY = this.#paddings.bottom + this.#padding / 1.5;
 
 		// put to the center (x axis)
-		let startX = (this.#canvas.width) / 2;
+		let startX = (this.#canvas_DPI_width) / 2;
 
 		// - text widths
 		for(let i = 0; i < this.#data["data"].length; i++)
@@ -350,13 +359,55 @@ export default class Line extends HTMLElement{
 
 			this.#ctx.textBaseline = "top";
 			this.#ctx.textAlign = "left";
-			this.#ctx.font = `bold ${this.#fontSize}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;
+			this.#ctx.font = `bold ${this.#font_size}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;
 			this.#ctx.fillText(this.#data["data"][i]["label"], startX + gap, posY);
 
 			startX += rectWidth + this.#ctx.measureText(this.#data["data"][i]["label"]).width + gap;
 		}
 	}
 
+	#init_on_hover_points(){
+		this.#canvas.addEventListener('mousemove', (event) => {
+			const rect = this.#canvas.getBoundingClientRect();
+			const mouseX = event.clientX - rect.left;
+			const mouseY = event.clientY - rect.top;
+
+			let closest_point_info = null;
+			let min_distance = Infinity;
+
+			for(const line of this.#data["data"]){
+				for(let i = 0; i < line["values"].length; i++){
+					const x = i * this.#gap_x_axis + this.#padding;
+					const y = this.#paddings.bottom - (line["values"][i] - this.#min_value) * this.#scale_y;
+
+					// Calculate distance from mouse to point
+					const distance = Math.sqrt(Math.pow(mouseX - x, 2) + Math.pow(mouseY - y, 2));
+
+					// If this point is closer than previous closest point
+					if (distance < min_distance && distance < this.#marker_size) {
+						min_distance = distance;
+						closest_point_info = {
+							line: line,
+							value: line["values"][i],
+						};
+					}
+				}
+			}
+
+			if(closest_point_info != null) {
+				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
+				this.#tooltip.style.display = 'block';
+				this.#tooltip.style.left = event.pageX + "px";
+				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
+				this.#tooltip.textContent = `
+					Label: ${closest_point_info.line.label}
+					Value: ${closest_point_info.value.toFixed(0)}
+				`;
+			}
+
+			else { this.#tooltip.style.display = 'none'; }
+		});
+	}
 }
 
 window.customElements.define('x-line-chart', Line);
