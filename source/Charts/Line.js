@@ -2,6 +2,7 @@ export default class Line extends HTMLElement{
 	#data;
 	#canvas;
 	#ctx;
+	#tooltip;
 
 	#textColor = "black";
 	#gridColor = "gray";
@@ -23,22 +24,46 @@ export default class Line extends HTMLElement{
 	#gridLineWidth = 0.1;
 	#parentElement = null;
 
+	#canvas_DPI_width = 0;
+	#canvas_DPI_height = 0;
+
 	constructor(){
 		super();
 
 		this.shadow = this.attachShadow({mode: 'closed'});
 		this.#data = JSON.parse(this.innerHTML);
-		this.#parentElement = this.parentNode;
 
 		// Style element
 		const style = document.createElement('style');
 		style.textContent = `
+			:host{
+				display: inline-block;
+				width: 100%;
+				height: 100%;
+				max-width: 100dvw;
+				max-height: 100dvh;
+			}
 			canvas{
-				max-width: 100vw;
-				max-height: 100vh;
+				width: 100%;
+				height: 100%;
+			}
+			div#XE_charts_line_tooltip{
+				position: absolute;
+				display: none;
+				background-color: rgba(0, 0, 0, 0.7);
+				color: white;
+				padding: 5px;
+				border-radius: 5px;
+				pointer-events: none;
+				font-size: 0.7em;
 			}
 		`;
 		this.shadow.appendChild(style);
+
+		// Tooltip element
+		this.#tooltip = document.createElement("div");
+		this.#tooltip.setAttribute("id", "XE_charts_line_tooltip");
+		this.shadow.appendChild(this.#tooltip);
 
 		// Canvas element
 		this.shadow.appendChild(document.createElement("canvas"));
@@ -46,12 +71,14 @@ export default class Line extends HTMLElement{
 		this.#ctx = this.#canvas.getContext('2d');
 
 		this.#resizeObserver();
+
+		this.#init_on_hover_points();
 	}
 
 	////// APIs
 	#resizeObserver(){
 		const resizeObserver = new ResizeObserver(this.#draw);
-		resizeObserver.observe(this.#parentElement);
+		resizeObserver.observe(this.parentNode);
 	}
 
 	#draw = ()=>{
@@ -94,9 +121,27 @@ export default class Line extends HTMLElement{
 	}
 
 	#setUpCanvas(){
-		this.#canvas.width = this.#parentElement.clientWidth;
-		this.#canvas.height = this.#parentElement.clientWidth / 2;
-		this.#ctx.clearRect(0, 0, this.#canvas.width, this.#canvas.height);
+		const DPR = window.devicePixelRatio || 1;
+
+		// First set CSS dimensions
+		this.#canvas.style.width = '100%';
+		this.#canvas.style.height = '100%';
+
+		// Get the size in CSS pixels after CSS is applied
+		const computed_style = getComputedStyle(this.#canvas);
+		const css_width = parseFloat(computed_style.width);
+		const css_height = parseFloat(computed_style.height);
+
+		// Get the sizes before DPI scaling for calcs
+		this.#canvas_DPI_width = css_width;
+		this.#canvas_DPI_height = css_height;
+
+		// Adjust canvas buffer size for DPR
+		this.#canvas.width = css_width * DPR;
+		this.#canvas.height = css_height * DPR;
+
+		// Scale the context for DPR
+		this.#ctx.scale(DPR, DPR);
 	}
 
 	#setValues(){
@@ -116,14 +161,14 @@ export default class Line extends HTMLElement{
 
 		this.#paddings = {
 			top: this.#padding,
-			right: this.#canvas.width - this.#padding,
-			bottom: this.#canvas.height - this.#padding,
+			right: this.#canvas_DPI_width - this.#padding,
+			bottom: this.#canvas_DPI_height - this.#padding,
 			left: this.#padding
 		};
 
 		this.#gapXAxis = (this.#paddings.right - this.#padding) / (this.#longestDataset - 1);
 		this.#gapYAxis = (this.#paddings.bottom - this.#padding) / (this.#markerCountYAxis - 1);
-		this.#scaleY = (this.#canvas.height - this.#padding * 2) / (this.#maxValue - this.#minValue);
+		this.#scaleY = (this.#canvas_DPI_height - this.#padding * 2) / (this.#maxValue - this.#minValue);
 
 		this.#YAxisStepValue = (this.#maxValue - this.#minValue) / (this.#markerCountYAxis - 1);
 	}
@@ -132,7 +177,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.fillStyle = this.#textColor;
 		this.#ctx.textAlign = "center";
 		this.#ctx.font = "bold 16px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif";
-		this.#ctx.fillText(this.#data.title, this.#canvas.width / 2, this.#paddings.top / 2);
+		this.#ctx.fillText(this.#data.title, this.#canvas_DPI_width / 2, this.#paddings.top / 2);
 	}
 
 	#drawMainXAxis(){
@@ -331,7 +376,7 @@ export default class Line extends HTMLElement{
 		const posY = this.#paddings.bottom + this.#padding / 1.5;
 
 		// put to the center (x axis)
-		let startX = (this.#canvas.width) / 2;
+		let startX = (this.#canvas_DPI_width) / 2;
 
 		// - text widths
 		for(let i = 0; i < this.#data["data"].length; i++)
@@ -357,6 +402,48 @@ export default class Line extends HTMLElement{
 		}
 	}
 
+	#init_on_hover_points(){
+		this.#canvas.addEventListener('mousemove', (event) => {
+			const rect = this.#canvas.getBoundingClientRect();
+			const mouseX = event.clientX - rect.left;
+			const mouseY = event.clientY - rect.top;
+
+			let closest_point_info = null;
+			let min_distance = Infinity;
+
+			for(const line of this.#data["data"]){
+				for(let i = 0; i < line["values"].length; i++){
+					const x = i * this.#gapXAxis + this.#padding;
+					const y = this.#paddings.bottom - (line["values"][i] - this.#minValue) * this.#scaleY;
+					
+					// Calculate distance from mouse to point
+					const distance = Math.sqrt(Math.pow(mouseX - x, 2) + Math.pow(mouseY - y, 2));
+					
+					// If this point is closer than previous closest point
+					if (distance < min_distance && distance < this.#markerSize * 2) {
+						min_distance = distance;
+						closest_point_info = {
+							line: line,
+							value: line["values"][i],
+						};
+					}
+				}
+			}
+
+			if(closest_point_info != null) {
+				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
+				this.#tooltip.style.display = 'block';
+				this.#tooltip.style.left = event.pageX + "px";
+				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
+				this.#tooltip.textContent = `
+					Label: ${closest_point_info.line.label}
+					Value: ${closest_point_info.value.toFixed(0)}
+				`;
+			}
+
+			else { this.#tooltip.style.display = 'none'; }
+		});
+	}
 }
 
 window.customElements.define('x-line-chart', Line);
