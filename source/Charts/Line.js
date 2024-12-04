@@ -177,8 +177,11 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_main_x_axis(){
-		this.#ctx.beginPath();
+		let linedash = 0;
+		if(this.#data["x_axis"]["linedash"]) linedash = this.#data["x_axis"]["linedash"];
 
+		this.#ctx.beginPath();
+		this.#ctx.setLineDash([linedash]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
@@ -188,8 +191,12 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_main_y_axis(){
+		let linedash = 0;
+		if(this.#data["y_axis"]["linedash"]) linedash = this.#data["y_axis"]["linedash"];
+
 		this.#ctx.beginPath();
 
+		this.#ctx.setLineDash([linedash]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
 		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 
@@ -220,8 +227,12 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_x_lines(){
+		let linedash = 0;
+		if(this.#data["grid"]["linedash"]) linedash = this.#data["grid"]["linedash"];
+
 		this.#ctx.strokeStyle = this.#grid_color;
 		this.#ctx.lineWidth = this.#grid_line_width;
+		this.#ctx.setLineDash([linedash]);
 
 		for (let i = 0; i < this.#marker_count_y_axis; i++) {
 			this.#ctx.beginPath();
@@ -232,8 +243,12 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_y_lines(){
+		let linedash = 0;
+		if(this.#data["grid"]["linedash"]) linedash = this.#data["grid"]["linedash"];
+
 		this.#ctx.strokeStyle = this.#grid_color;
 		this.#ctx.lineWidth = this.#grid_line_width;
+		this.#ctx.setLineDash([linedash]);
 
 		for(let i = 0; i < this.#longest_dataset; i++){
 			const x = i * this.#gap_x_axis + this.#padding;
@@ -245,7 +260,11 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_lines(){
+		let linedash = 0;
+		if(this.#data["linedash"]) linedash = this.#data["linedash"];
+
 		this.#ctx.lineWidth = 2;
+		this.#ctx.setLineDash([linedash]);
 
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
@@ -339,36 +358,35 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_legends(){
-		const rectWidth = 20;
-		const rectHeight = 10;
+		const rect_width = 20;
+		const rect_height = 10;
 		const gap = 30;
 
-		const posY = this.#paddings.bottom + this.#padding / 1.5;
+		const pos_y = this.#paddings["top"] / 2;
 
 		// put to the center (x axis)
-		let startX = (this.#canvas_DPI_width) / 2;
+		let start_x = (this.#canvas_DPI_width) / 2;
 
 		// - text widths
-		for(let i = 0; i < this.#data["data"].length; i++)
-			startX -= this.#ctx.measureText(this.#data["data"][i]["label"]).width / 2;
+		for(let i = 0; i < this.#data["data"].length; i++) start_x -= this.#ctx.measureText(this.#data["data"][i]["label"]).width;
 
 		// - rectangles
-		startX -= this.#data["data"].length * rectWidth / 2;
+		start_x -= this.#data["data"].length * rect_width / 2;
 
 		// - Gaps
-		startX -= (this.#data["data"].length - 1) * gap / 2;
+		start_x -= (this.#data["data"].length - 1) * gap / 2;
 
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.fillStyle = this.#data["data"][i]["color"];
 
-			this.#ctx.fillRect(startX, posY, rectWidth, rectHeight);
+			this.#ctx.fillRect(start_x, pos_y - rect_height / 2, rect_width, rect_height);
 
-			this.#ctx.textBaseline = "top";
+			this.#ctx.textBaseline = "middle";
 			this.#ctx.textAlign = "left";
 			this.#ctx.font = `bold ${this.#font_size}px 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif`;
-			this.#ctx.fillText(this.#data["data"][i]["label"], startX + gap, posY);
+			this.#ctx.fillText(this.#data["data"][i]["label"], start_x + gap, pos_y);
 
-			startX += rectWidth + this.#ctx.measureText(this.#data["data"][i]["label"]).width + gap;
+			start_x += rect_width + this.#ctx.measureText(this.#data["data"][i]["label"]).width + gap;
 		}
 	}
 
