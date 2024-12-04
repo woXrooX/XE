@@ -6,7 +6,8 @@ export default class Line extends HTMLElement{
 
 	#text_color = "black";
 	#grid_color = "gray";
-	#main_axis_color ="black";
+	#main_x_axis_color ="black";
+	#main_y_axis_color ="black";
 	#font_size = 11;
 
 	#padding = 50;
@@ -21,7 +22,7 @@ export default class Line extends HTMLElement{
 	#marker_count_y_axis = 10;
 	#y_axis_step_value;
 	#circle_rad = 4;
-	#grid_line_width = 0.1;
+	#grid_line_width = 0.2;
 
 	#canvas_DPI_width = 0;
 	#canvas_DPI_height = 0;
@@ -112,9 +113,14 @@ export default class Line extends HTMLElement{
 
 	////// Helpers
 	#update_colors(){
-		this.#text_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
-		this.#grid_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary");
-		this.#main_axis_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary");
+		this.#text_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || this.#text_color;
+		this.#grid_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary") || this.#grid_color;
+		this.#main_x_axis_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || this.#main_x_axis_color;
+		this.#main_y_axis_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || this.#main_y_axis_color;
+
+		if("grid" in this.#data && this.#data["grid"]["color"]) this.#grid_color = this.#data["grid"]["color"];
+		if("x_axis" in this.#data && this.#data["x_axis"]["color"]) this.#main_x_axis_color = this.#data["x_axis"]["color"];
+		if("y_axis" in this.#data && this.#data["y_axis"]["color"]) this.#main_y_axis_color = this.#data["y_axis"]["color"];
 	}
 
 	#set_up_canvas(){
@@ -176,7 +182,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#main_axis_color;
+		this.#ctx.strokeStyle = this.#main_x_axis_color;
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
@@ -187,7 +193,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
 		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#main_axis_color;
+		this.#ctx.strokeStyle = this.#main_y_axis_color;
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
