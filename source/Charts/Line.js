@@ -367,12 +367,14 @@ export default class Line extends HTMLElement{
 	}
 
 	#init_on_hover_points(){
+		if(this.#data["data_points"] !== true) return;
+
 		this.#canvas.addEventListener('mousemove', (event) => {
 			const rect = this.#canvas.getBoundingClientRect();
 			const mouseX = event.clientX - rect.left;
 			const mouseY = event.clientY - rect.top;
 
-			let closest_point_info = null;
+			let hovered_point = null;
 			let min_distance = Infinity;
 
 			for(const line of this.#data["data"]){
@@ -386,23 +388,17 @@ export default class Line extends HTMLElement{
 					// If this point is closer than previous closest point
 					if (distance < min_distance && distance < this.#marker_size) {
 						min_distance = distance;
-						closest_point_info = {
-							line: line,
-							value: line["values"][i],
-						};
+						hovered_point = { label: line["label"], value: line["values"][i] };
 					}
 				}
 			}
 
-			if(closest_point_info != null) {
+			if(hovered_point != null) {
 				let tooltip_height = this.#tooltip.getBoundingClientRect().height;
 				this.#tooltip.style.display = 'block';
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `
-					Label: ${closest_point_info.line.label}
-					Value: ${closest_point_info.value.toFixed(0)}
-				`;
+				this.#tooltip.textContent = `${hovered_point["label"]}: ${hovered_point["value"].toFixed(0)}`;
 			}
 
 			else { this.#tooltip.style.display = 'none'; }

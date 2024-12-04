@@ -353,7 +353,7 @@ export default class Bar_y extends HTMLElement {
 				this.#tooltip.style.display = "block";
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `${hovered_bar.label} ${hovered_bar["display_value"]}`;
+				this.#tooltip.textContent = `${hovered_bar.label}${hovered_bar["display_value"] && ": " + hovered_bar["display_value"]}`;
 			}else this.#tooltip.style.display = "none";
 		});
 	}
