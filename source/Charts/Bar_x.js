@@ -287,7 +287,11 @@ export default class Bar_x extends HTMLElement {
 	#draw_x_axis_line(){
 		if(!("x_axis" in this.#data) || this.#data["x_axis"]["line"] == false) return;
 
+		let linedash = 0;
+		if(this.#data["x_axis"]["linedash"]) linedash = this.#data["x_axis"]["linedash"];
+
 		this.#ctx.beginPath();
+		this.#ctx.setLineDash([linedash]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["right"], this.#paddings.bottom);
 
@@ -316,7 +320,11 @@ export default class Bar_x extends HTMLElement {
 	#draw_y_axis_line(){
 		if(!("y_axis" in this.#data) || this.#data["y_axis"]["line"] == false) return;
 
+		let linedash = 0;
+		if(this.#data["y_axis"]["linedash"]) linedash = this.#data["y_axis"]["linedash"];
+
 		this.#ctx.beginPath();
+		this.#ctx.setLineDash([linedash]);
 		this.#ctx.moveTo(this.#paddings["left"], this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["left"], this.#paddings.top);
 
@@ -346,6 +354,10 @@ export default class Bar_x extends HTMLElement {
 	#draw_y_axis_grid_lines(){
 		if(!("y_axis" in this.#data) || this.#data["y_axis"]["grid_lines"] !== true) return;
 
+		let linedash = 0;
+		if(this.#data["y_axis"]["griddash"]) linedash = this.#data["y_axis"]["griddash"];
+
+		this.#ctx.setLineDash([linedash]);
 		this.#ctx.lineWidth = 0.5;
 		this.#ctx.strokeStyle = this.#y_axis_color;
 
