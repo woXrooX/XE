@@ -242,13 +242,14 @@ export default class Bar_y extends HTMLElement {
 
 	#draw_bars(){
 		for(const bar of this.#bars){
-			this.#ctx.beginPath()
+			this.#ctx.beginPath();
+			this.#ctx.setLineDash([0]);
 			this.#ctx.fillStyle = bar["color"];
 			this.#ctx.strokeStyle = bar["color"];
 			this.#ctx.roundRect(bar["x"], bar["y"], bar["width"], bar["height"], this.#border_radius);
-			this.#ctx.fill()
-			this.#ctx.stroke()
-			this.#ctx.closePath()
+			this.#ctx.fill();
+			this.#ctx.stroke();
+			this.#ctx.closePath();
 		}
 	}
 
