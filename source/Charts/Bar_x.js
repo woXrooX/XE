@@ -287,11 +287,8 @@ export default class Bar_x extends HTMLElement {
 	#draw_x_axis_line(){
 		if(!("x_axis" in this.#data) || this.#data["x_axis"]["line"] == false) return;
 
-		let linedash = 0;
-		if(this.#data["x_axis"]["linedash"]) linedash = this.#data["x_axis"]["linedash"];
-
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["x_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["right"], this.#paddings.bottom);
 
@@ -320,11 +317,8 @@ export default class Bar_x extends HTMLElement {
 	#draw_y_axis_line(){
 		if(!("y_axis" in this.#data) || this.#data["y_axis"]["line"] == false) return;
 
-		let linedash = 0;
-		if(this.#data["y_axis"]["linedash"]) linedash = this.#data["y_axis"]["linedash"];
-
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings["left"], this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["left"], this.#paddings.top);
 
@@ -352,14 +346,11 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#draw_y_axis_grid_lines(){
-		if(!("y_axis" in this.#data) || this.#data["y_axis"]["grid_lines"] !== true) return;
+		if(!("grid" in this.#data)) return;
 
-		let linedash = 0;
-		if(this.#data["y_axis"]["griddash"]) linedash = this.#data["y_axis"]["griddash"];
-
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 		this.#ctx.lineWidth = 0.5;
-		this.#ctx.strokeStyle = this.#y_axis_color;
+		this.#ctx.strokeStyle = this.#data["grid"]["color"] || this.#y_axis_color;
 
 		for (let i = 0; i < this.#x_axis_marker_count; i++) {
 			let x = this.#paddings["right"] - (this.#x_axis_marker_gap * i);

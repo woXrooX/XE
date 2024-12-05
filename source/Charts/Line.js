@@ -221,11 +221,8 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_main_x_axis(){
-		let linedash = 0;
-		if(this.#data["x_axis"]["linedash"]) linedash = this.#data["x_axis"]["linedash"];
-
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["x_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
@@ -235,12 +232,8 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_main_y_axis(){
-		let linedash = 0;
-		if(this.#data["y_axis"]["linedash"]) linedash = this.#data["y_axis"]["linedash"];
-
 		this.#ctx.beginPath();
-
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
 		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 
@@ -289,12 +282,9 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_x_lines(){
-		let linedash = 0;
-		if(this.#data["grid"]["linedash"]) linedash = this.#data["grid"]["linedash"];
-
 		this.#ctx.strokeStyle = this.#grid_color;
 		this.#ctx.lineWidth = this.#grid_line_width;
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 
 		for (let i = 0; i < this.#marker_count_y_axis; i++) {
 			this.#ctx.beginPath();
@@ -305,9 +295,6 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_y_lines(){
-		let linedash = 0;
-		if(this.#data["grid"]["linedash"]) linedash = this.#data["grid"]["linedash"];
-
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
@@ -315,7 +302,7 @@ export default class Line extends HTMLElement{
 
 		this.#ctx.strokeStyle = this.#grid_color;
 		this.#ctx.lineWidth = this.#grid_line_width;
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 
 		for(let i = 0; i < markers_length; i++){
 			const x = i * gap_x_axis + this.#paddings["left"];
@@ -327,16 +314,13 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_lines(){
-		let linedash = 0;
-		if(this.#data["linedash"]) linedash = this.#data["linedash"];
-
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
 		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
 		this.#ctx.lineWidth = 2;
-		this.#ctx.setLineDash([linedash]);
+		this.#ctx.setLineDash([this.#data["line_dash"] || 0]);
 
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
