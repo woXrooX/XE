@@ -359,19 +359,24 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_opacity_or_plain_background(){
-		for(let i = 0; i < this.#data["data"].length; i++){
+		let has_markers = false;
+		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
+		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
+		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
+
+		for(const line of this.#data["data"]){
 			this.#ctx.beginPath();
 
-			for(let j = 0; j <= this.#data["data"][i]["values"].length; j++){
+			for(let i = 0; i < markers_length; i++){
 				this.#ctx.lineTo(
-					j * this.#gap_x_axis + this.#padding,
-					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#min_value) * this.#scale_y
+					i * gap_x_axis + this.#paddings["left"],
+					this.#paddings.bottom - (line["values"][i] - this.#min_value) * this.#scale_y
 				);
 
-				if(j == this.#data["data"][i]["values"].length){
+				if(i == (markers_length - 1)){
 					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
-					this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#text_color;
+					this.#ctx.fillStyle = line["color"] ?? this.#text_color;
 					this.#ctx.globalAlpha = this.#data["fill_type"] === "plain" ? 1 : 0.1;
 					this.#ctx.closePath();
 				}
@@ -382,30 +387,34 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_gradient_background(){
+		let has_markers = false;
+		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
+		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
+		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
+
 		this.#ctx.globalAlpha = 0.5;
 
-		for(let i = 0; i < this.#data["data"].length; i++){
+		for(const line of this.#data["data"]){
 			this.#ctx.beginPath();
 
 			const gradient = this.#ctx.createLinearGradient(
 				this.#padding,
-				this.#paddings.bottom - (Math.max(...this.#data["data"][i]["values"]) - this.#min_value) * this.#scale_y,
-				// this.#paddings.top,
+				this.#paddings.bottom - (Math.max(...line["values"]) - this.#min_value) * this.#scale_y,
 				this.#padding,
 				this.#paddings.bottom
 			);
-			gradient.addColorStop(0, this.#data["data"][i]["color"]);
+			gradient.addColorStop(0, line["color"]);
 			gradient.addColorStop(1, "rgba(255, 255, 255, 0");
 			this.#ctx.fillStyle = gradient;
 
-			for(let j = 0; j <= this.#data["data"][i]["values"].length; j++){
+			for(let i = 0; i < markers_length; i++){
 
 				this.#ctx.lineTo(
-					j * this.#gap_x_axis + this.#padding,
-					this.#paddings.bottom - (this.#data["data"][i]["values"][j] - this.#min_value) * this.#scale_y
+					i * gap_x_axis + this.#paddings["left"],
+					this.#paddings.bottom - (line["values"][i] - this.#min_value) * this.#scale_y
 				);
 
-				if(j == this.#data["data"][i]["values"].length){
+				if(i == (markers_length - 1)){
 					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 					this.#ctx.closePath();
