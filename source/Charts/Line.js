@@ -321,12 +321,12 @@ export default class Line extends HTMLElement{
 		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
 		this.#ctx.lineWidth = 2;
-		this.#ctx.setLineDash([this.#data["line_dash"] || 0]);
 
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
 			this.#ctx.moveTo(this.#paddings["left"], this.#paddings["bottom"] - (this.#data["data"][i]["values"][0] - this.#min_value) * this.#scale_y);
 			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? this.#text_color;
+			this.#ctx.setLineDash([this.#data["data"][i]["line_dash"] || 0]);
 
 			for(let j = 0; j < markers_length; j++){
 				this.#ctx.lineTo(
