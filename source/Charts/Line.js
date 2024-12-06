@@ -3,6 +3,7 @@ export default class Line extends HTMLElement{
 	#canvas;
 	#ctx;
 	#tooltip;
+	#font = "16px Quicksand";
 
 	#text_color = "black";
 	#grid_color = "gray";
@@ -173,7 +174,7 @@ export default class Line extends HTMLElement{
 	}
 
 	#calculate_values(){
-		this.#ctx.font = `0.8em Quicksand`;
+		this.#ctx.font = this.#font;
 		let legend_height = this.#ctx.measureText(this.#data["data"][0]["label"]).actualBoundingBoxAscent + this.#ctx.measureText(this.#data["data"][0]["label"]).actualBoundingBoxDescent;
 		let initial_line_height = this.#canvas_DPI_height - this.#padding * 2;
 		let actual_line_height = initial_line_height;
@@ -248,12 +249,13 @@ export default class Line extends HTMLElement{
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
 		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
-		this.#ctx.font = "0.8em Quicksand";
+		this.#ctx.font = this.#font;
 		this.#ctx.fillStyle = this.#text_color;
+		this.#ctx.textBaseline = "top";
 
 		for(let i = 0; i < markers_length; i++){
 			const x = i * gap_x_axis + this.#paddings["left"];
-			const y = this.#paddings["bottom"] + this.#padding/2;
+			const y = this.#paddings["bottom"];
 			const label = has_markers ? this.#data["x_axis"]["markers"][i] : i;
 
 			if(this.#rotated_labels === true){
@@ -275,7 +277,7 @@ export default class Line extends HTMLElement{
 		for(let i = 0; i < this.#marker_count_y_axis; i++){
 			this.#ctx.textAlign = "right";
 			this.#ctx.fillStyle = this.#text_color;
-			this.#ctx.font = "0.8em Quicksand";
+			this.#ctx.font = this.#font;
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.fillText((this.#max_value - i * this.#y_axis_step_value).toFixed(1), this.#paddings.left - this.#padding, i * this.#gap_y_axis + this.#paddings["top"]);
 		}
@@ -433,9 +435,9 @@ export default class Line extends HTMLElement{
 		const gap = 30;
 		let start_x = (this.#canvas_DPI_width) / 2;
 
-		this.#ctx.textBaseline = "top";
+		this.#ctx.textBaseline = "middle";
 		this.#ctx.textAlign = "left";
-		this.#ctx.font = `bold 0.8em Quicksand`;
+		this.#ctx.font = this.#font;
 
 		for(let i = 0; i < this.#data["data"].length; i++) start_x -= this.#ctx.measureText(this.#data["data"][i]["label"]).width / 2;
 
@@ -447,7 +449,7 @@ export default class Line extends HTMLElement{
 
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.fillStyle = this.#data["data"][i]["color"];
-			this.#ctx.fillRect(start_x, this.#padding, rect_width, rect_height);
+			this.#ctx.fillRect(start_x, this.#padding - (rect_height / 2), rect_width, rect_height);
 			this.#ctx.fillText(this.#data["data"][i]["label"], start_x + gap, this.#padding);
 			start_x += rect_width + this.#ctx.measureText(this.#data["data"][i]["label"]).width + gap;
 		}
