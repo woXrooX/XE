@@ -5,10 +5,11 @@ export default class Line extends HTMLElement{
 	#tooltip;
 	#font = "16px Quicksand";
 
-	#text_color = "black";
-	#grid_color = "gray";
-	#main_x_axis_color ="black";
-	#main_y_axis_color ="black";
+	#grid_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-secondary") || "gray";
+	#x_axis_line_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
+	#x_axis_text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
+	#y_axis_line_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
+	#y_axis_text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#rotated_labels = false;
 	#total_text_markers_length = 0;
 
@@ -79,53 +80,34 @@ export default class Line extends HTMLElement{
 
 	////// APIs
 	#resize_observer(){
-		const resize_observer_object = new ResizeObserver(this.#draw);
+		const resize_observer_object = new ResizeObserver(this.#init);
 		resize_observer_object.observe(this.parentNode);
 	}
 
-	#draw = ()=>{
-		this.#update_colors();
+	#init = ()=>{
 		this.#set_up_canvas();
 		this.#init_values();
 		this.#calculate_values();
 
-		if("legends" in this.#data && this.#data["legends"] === true) this.#draw_legends();
-		if("grid" in this.#data){
-			if("horizontal" in this.#data["grid"] && this.#data["grid"]["horizontal"]) this.#draw_x_lines();
-			if("vertical" in this.#data["grid"] && this.#data["grid"]["vertical"]) this.#draw_y_lines();
-		}
+		this.#draw_legends();
 
-		if("fill_type" in this.#data){
-			if(this.#data["fill_type"] === "plain" || this.#data["fill_type"] === "opacity") this.#draw_opacity_or_plain_background();
-			if(this.#data["fill_type"] === "gradient") this.#draw_gradient_background();
-		}
+		this.#draw_grid_x_lines();
+		this.#draw_grid_y_lines();
 
-		if("x_axis" in this.#data && "label" in this.#data["x_axis"] && this.#data["x_axis"]["label"]){
-			this.#draw_main_x_axis();
-			this.#draw_markers_x_axis();
-		}
+		this.#draw_data_fill_type_opacity_or_plain();
+		this.#draw_data_fill_type_gradient();
 
-		if("y_axis" in this.#data && "label" in this.#data["y_axis"] && this.#data["y_axis"]["label"]){
-			this.#draw_main_y_axis();
-			this.#draw_markers_y_axis();
-		}
+		this.#draw_x_axis_line();
+		this.#draw_x_axis_markers();
 
-		this.#draw_lines();
-		if("data_points" in this.#data && this.#data["data_points"] === true) this.#draw_circle();
+		this.#draw_y_axis_line();
+		this.#draw_y_axis_markers();
+
+		this.#draw_data_lines();
+		this.#draw_data_points();
 	}
 
 	////// Helpers
-	#update_colors(){
-		this.#text_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || this.#text_color;
-		this.#grid_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-secondary") || this.#grid_color;
-		this.#main_x_axis_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || this.#main_x_axis_color;
-		this.#main_y_axis_color = getComputedStyle(document.querySelector(':root')).getPropertyValue("--color-text-primary") || this.#main_y_axis_color;
-
-		if("grid" in this.#data && this.#data["grid"]["color"]) this.#grid_color = this.#data["grid"]["color"];
-		if("x_axis" in this.#data && this.#data["x_axis"]["color"]) this.#main_x_axis_color = this.#data["x_axis"]["color"];
-		if("y_axis" in this.#data && this.#data["y_axis"]["color"]) this.#main_y_axis_color = this.#data["y_axis"]["color"];
-	}
-
 	#set_up_canvas(){
 		const DPR = window.devicePixelRatio || 1;
 
@@ -151,6 +133,18 @@ export default class Line extends HTMLElement{
 	}
 
 	#init_values(){
+		if("x_axis" in this.#data){
+			if(this.#data["x_axis"]["line_color"]) this.#x_axis_line_color = this.#data["x_axis"]["line_color"];
+			if(this.#data["x_axis"]["text_color"]) this.#x_axis_text_color = this.#data["x_axis"]["text_color"];
+		}
+
+		if("y_axis" in this.#data){
+			if(this.#data["y_axis"]["line_color"]) this.#y_axis_line_color = this.#data["y_axis"]["line_color"];
+			if(this.#data["y_axis"]["text_color"]) this.#y_axis_text_color = this.#data["y_axis"]["text_color"];
+		}
+
+		if("grid" in this.#data && this.#data["grid"]["color"]) this.#grid_color = this.#data["grid"]["color"];
+
 		// Marker count Y axis
 		if("y_axis" in this.#data && "marker_count" in this.#data["y_axis"]) this.#marker_count_y_axis = this.#data["y_axis"]["marker_count"];
 
@@ -221,36 +215,29 @@ export default class Line extends HTMLElement{
 		this.#y_axis_step_value = (this.#max_value - this.#min_value) / (this.#marker_count_y_axis - 1);
 	}
 
-	#draw_main_x_axis(){
+	#draw_x_axis_line(){
+		if(!("x_axis" in this.#data) || this.#data["x_axis"]["label"] !== true) return;
+
 		this.#ctx.beginPath();
 		this.#ctx.setLineDash([this.#data["x_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#main_x_axis_color;
+		this.#ctx.strokeStyle = this.#x_axis_line_color;
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
 
-	#draw_main_y_axis(){
-		this.#ctx.beginPath();
-		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
-		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
-		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
+	#draw_x_axis_markers(){
+		if(!("x_axis" in this.#data) || this.#data["x_axis"]["label"] !== true) return;
 
-		this.#ctx.strokeStyle = this.#main_y_axis_color;
-		this.#ctx.lineWidth = 1;
-		this.#ctx.stroke();
-	}
-
-	#draw_markers_x_axis(){
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
 		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
 		this.#ctx.font = this.#font;
-		this.#ctx.fillStyle = this.#text_color;
+		this.#ctx.fillStyle = this.#x_axis_text_color;
 
 		for(let i = 0; i < markers_length; i++){
 			const x = i * gap_x_axis + this.#paddings["left"];
@@ -272,17 +259,33 @@ export default class Line extends HTMLElement{
 		}
 	}
 
-	#draw_markers_y_axis(){
+	#draw_y_axis_line(){
+		if(!("y_axis" in this.#data) || this.#data["y_axis"]["label"] !== true) return;
+
+		this.#ctx.beginPath();
+		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
+		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
+		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
+
+		this.#ctx.strokeStyle = this.#y_axis_line_color;
+		this.#ctx.lineWidth = 1;
+		this.#ctx.stroke();
+	}
+
+	#draw_y_axis_markers(){
 		for(let i = 0; i < this.#marker_count_y_axis; i++){
 			this.#ctx.textAlign = "right";
-			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillStyle = this.#y_axis_text_color;
 			this.#ctx.font = this.#font;
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.fillText((this.#max_value - i * this.#y_axis_step_value).toFixed(1), this.#paddings.left - this.#padding, i * this.#gap_y_axis + this.#paddings["top"]);
 		}
 	}
 
-	#draw_x_lines(){
+	#draw_grid_x_lines(){
+		if(!("grid" in this.#data)) return;
+		if(this.#data["grid"]["x"] !== true) return;
+
 		this.#ctx.strokeStyle = this.#grid_color;
 		this.#ctx.lineWidth = this.#grid_line_width;
 		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
@@ -295,7 +298,10 @@ export default class Line extends HTMLElement{
 		}
 	}
 
-	#draw_y_lines(){
+	#draw_grid_y_lines(){
+		if(!("grid" in this.#data)) return;
+		if(this.#data["grid"]["y"] !== true) return;
+
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
@@ -314,7 +320,7 @@ export default class Line extends HTMLElement{
 		}
 	}
 
-	#draw_lines(){
+	#draw_data_lines(){
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
@@ -325,7 +331,7 @@ export default class Line extends HTMLElement{
 		for(let i = 0; i < this.#data["data"].length; i++){
 			this.#ctx.beginPath();
 			this.#ctx.moveTo(this.#paddings["left"], this.#paddings["bottom"] - (this.#data["data"][i]["values"][0] - this.#min_value) * this.#scale_y);
-			this.#ctx.strokeStyle = this.#data["data"][i]["color"] ?? this.#text_color;
+			this.#ctx.strokeStyle = this.#data["data"][i]["color"];
 			this.#ctx.setLineDash([this.#data["data"][i]["line_dash"] || 0]);
 
 			for(let j = 0; j < markers_length; j++){
@@ -339,7 +345,9 @@ export default class Line extends HTMLElement{
 		}
 	}
 
-	#draw_circle(){
+	#draw_data_points(){
+		if(!("data_points" in this.#data) || this.#data["data_points"] !== true) return;
+
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
@@ -352,14 +360,17 @@ export default class Line extends HTMLElement{
 				const x = j * gap_x_axis + this.#paddings["left"];
 				const y = this.#paddings.bottom - (values[j] - this.#min_value) * this.#scale_y;
 				this.#ctx.beginPath();
-				this.#ctx.fillStyle = this.#data["data"][i]["color"] ?? this.#text_color;
+				this.#ctx.fillStyle = this.#data["data"][i]["color"];
 				this.#ctx.arc(x, y, this.#circle_rad, 0, Math.PI * 2);
 				this.#ctx.fill();
 			}
 		}
 	}
 
-	#draw_opacity_or_plain_background(){
+	#draw_data_fill_type_opacity_or_plain(){
+		if(!("fill_type" in this.#data)) return;
+		if(this.#data["fill_type"] !== "plain" && this.#data["fill_type"] !== "opacity") return;
+
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
@@ -377,7 +388,7 @@ export default class Line extends HTMLElement{
 				if(i == (markers_length - 1)){
 					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
-					this.#ctx.fillStyle = line["color"] ?? this.#text_color;
+					this.#ctx.fillStyle = line["color"];
 					this.#ctx.globalAlpha = this.#data["fill_type"] === "plain" ? 1 : 0.1;
 					this.#ctx.closePath();
 				}
@@ -387,7 +398,10 @@ export default class Line extends HTMLElement{
 		this.#ctx.globalAlpha = 1;
 	}
 
-	#draw_gradient_background(){
+	#draw_data_fill_type_gradient(){
+		if(!("fill_type" in this.#data)) return;
+		if(this.#data["fill_type"] !== "gradient") return;
+
 		let has_markers = false;
 		if(this.#data["x_axis"]["markers"] && this.#data["x_axis"]["markers"].length > 1) has_markers = true;
 		const markers_length = has_markers ? this.#data["x_axis"]["markers"].length : this.#longest_dataset;
@@ -429,6 +443,8 @@ export default class Line extends HTMLElement{
 	}
 
 	#draw_legends(){
+		if(!("legends" in this.#data) || this.#data["legends"] !== true) return;
+
 		const rect_width = 20;
 		const rect_height = 10;
 		const gap = 30;
@@ -503,3 +519,57 @@ export default class Line extends HTMLElement{
 }
 
 window.customElements.define('x-line-chart', Line);
+
+{/* <x-line-chart>
+{
+	"legends": true,
+	"data_points": true,
+	"fill_type": "gradient",
+	"x_axis": {
+		"line": {
+			"line_dash": 0,
+			"color": "white"
+		},
+		"marker": {
+			"color": "white",
+			"markers": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+		}
+	},
+	"y_axis": {
+		"line": {
+			"line_dash": 0,
+			"color": "white"
+		},
+		"marker": {
+			"color": "white",
+			"count": 5
+		}
+	},
+	"grid": {
+		"x": true,
+		"y": true,
+		"line_dash": 10,
+		"color": "white"
+	},
+	"datasets": [
+		{
+			"label": "A",
+			"line_dash": 10,
+			"color": "#ef9b20",
+			"data": [50, 20, 0, 40, 70, 60, 90, 80, 50, 200, -60, -250, 400]
+		},
+		{
+			"label": "B",
+			"line_dash": 0,
+			"color": "#27aeef",
+			"data": [150, 50, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650]
+		},
+		{
+			"label": "C",
+			"line_dash": 0,
+			"color": "#b33dc6",
+			"data": [-50, 70, 20, 90, 150, 120, 180, 200, 170, 160, 140, 130, 110]
+		}
+	]
+}
+</x-line-chart> */}
