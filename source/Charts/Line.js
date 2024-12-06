@@ -3,15 +3,9 @@ export default class Line extends HTMLElement{
 	#canvas;
 	#ctx;
 	#tooltip;
-	#font = "16px Quicksand";
+	#font_size = 16;
 
-	#grid_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-secondary") || "gray";
-	#x_axis_line_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-	#x_axis_marker_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-	#y_axis_line_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-	#y_axis_marker_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#rotated_labels = false;
-	#total_text_markers_length = 0;
 
 	#padding = 20;
 	#paddings;
@@ -21,11 +15,11 @@ export default class Line extends HTMLElement{
 	#gap_x_axis = 0;
 	#gap_y_axis = 0;
 	#scale_y;
-	#marker_size = 10;
-	#marker_count_y_axis = 10;
+	#y_axis_marker_count = 10;
 	#y_axis_step_value;
 	#circle_rad = 4;
 	#grid_line_width = 0.2;
+	#grid_outside_size = 10;
 
 	#canvas_DPI_width = 0;
 	#canvas_DPI_height = 0;
@@ -133,8 +127,20 @@ export default class Line extends HTMLElement{
 	}
 
 	#init_values(){
-		// Marker count Y axis
-		if("y_axis" in this.#data && "marker" in this.#data["y_axis"] && this.#data["y_axis"]["marker"]["count"]) this.#marker_count_y_axis = this.#data["y_axis"]["marker"]["count"];
+		this.#y_axis_marker_count = this.#data?.y_axis?.marker?.count ?? this.#y_axis_marker_count;
+		this.#ctx.font = `${this.#font_size}px Quicksand`;
+
+		this.#paddings = {
+			top: this.#padding,
+			right: this.#canvas_DPI_width - this.#padding,
+			bottom: this.#canvas_DPI_height - this.#padding,
+			left: this.#padding
+		};
+	}
+
+	#calculate_values(){
+		let initial_line_height = this.#canvas_DPI_height - this.#padding * 2;
+		let actual_line_height = initial_line_height;
 
 		// Finding min max
 		for(let i = 0; i < this.#data["datasets"].length; i++){
@@ -147,41 +153,26 @@ export default class Line extends HTMLElement{
 			if(this.#data["datasets"][i]["data"].length > this.#longest_dataset) this.#longest_dataset = this.#data["datasets"][i]["data"].length;
 		}
 
-		this.#paddings = {
-			top: this.#padding,
-			right: this.#canvas_DPI_width - this.#padding,
-			bottom: this.#canvas_DPI_height - this.#padding,
-			left: this.#padding
-		};
-	}
-
-	#calculate_values(){
-		this.#ctx.font = this.#font;
-		let legend_height = this.#ctx.measureText(this.#data["datasets"][0]["label"]).actualBoundingBoxAscent + this.#ctx.measureText(this.#data["datasets"][0]["label"]).actualBoundingBoxDescent;
-		let initial_line_height = this.#canvas_DPI_height - this.#padding * 2;
-		let actual_line_height = initial_line_height;
-
-
 		if(this.#data["legends"] === true){
-			this.#paddings["top"] += legend_height + this.#padding;
+			this.#paddings["top"] += this.#font_size + this.#padding;
 			actual_line_height = initial_line_height - (this.#paddings["top"] + this.#padding);
 		}
 
-		if(this.#data["x_axis"] &&  this.#data["x_axis"]["marker"]){
-			this.#paddings["bottom"] -= legend_height + this.#padding;
+		if("x_axis" in this.#data && "marker" in this.#data["x_axis"]){
+			this.#paddings["bottom"] -= this.#font_size + this.#padding;
 
 			let rotated_longest_marker_width = 0;
+			let total_text_markers_length = 0;
 			if("markers" in this.#data["x_axis"]["marker"] && this.#data["x_axis"]["marker"]["markers"].length > 1){
-				if(this.#total_text_markers_length == 0)
-					for(const marker of this.#data["x_axis"]["marker"]["markers"]){
-						this.#total_text_markers_length += this.#ctx.measureText(marker).width + this.#padding * 2;
-					}
+				if(total_text_markers_length == 0)
+					for(const marker of this.#data["x_axis"]["marker"]["markers"])
+						total_text_markers_length += this.#ctx.measureText(marker).width + this.#padding * 2;
 
 				this.#paddings["left"] += this.#ctx.measureText(this.#data["x_axis"]["marker"]["markers"][0]).width / 2;
 				this.#paddings["right"] -= this.#ctx.measureText(this.#data["x_axis"]["marker"]["markers"][this.#data["x_axis"]["marker"]["markers"].length - 1]).width / 2;
 
 				this.#rotated_labels = false;
-				if(this.#total_text_markers_length>= this.#canvas_DPI_width) this.#rotated_labels = true;
+				if(total_text_markers_length>= this.#canvas_DPI_width) this.#rotated_labels = true;
 				if(this.#rotated_labels == true){
 					let longest_marker_text = this.#data["x_axis"]["marker"]["markers"].slice().sort((a, b) => b.length - a.length)[0];
 					rotated_longest_marker_width = this.#ctx.measureText(longest_marker_text).width;
@@ -189,7 +180,7 @@ export default class Line extends HTMLElement{
 				}
 			}
 
-			actual_line_height = initial_line_height - (this.#paddings["top"] + legend_height + rotated_longest_marker_width);
+			actual_line_height = initial_line_height - (this.#paddings["top"] + this.#font_size + rotated_longest_marker_width);
 		}
 
 		if("y_axis" in this.#data && "marker" in this.#data["y_axis"]){
@@ -198,9 +189,9 @@ export default class Line extends HTMLElement{
 		}
 
 		this.#gap_x_axis = (this.#paddings["right"] - this.#paddings["left"]) / (this.#longest_dataset - 1);
-		this.#gap_y_axis = (this.#paddings["bottom"] - this.#paddings["top"]) / (this.#marker_count_y_axis - 1);
+		this.#gap_y_axis = (this.#paddings["bottom"] - this.#paddings["top"]) / (this.#y_axis_marker_count - 1);
 		this.#scale_y = actual_line_height / (this.#max_value - this.#min_value);
-		this.#y_axis_step_value = (this.#max_value - this.#min_value) / (this.#marker_count_y_axis - 1);
+		this.#y_axis_step_value = (this.#max_value - this.#min_value) / (this.#y_axis_marker_count - 1);
 	}
 
 	#draw_x_axis_line(){
@@ -211,7 +202,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#data["x_axis"]["line"]["color"] || this.#x_axis_line_color;
+		this.#ctx.strokeStyle = this.#data["x_axis"]["line"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
@@ -221,11 +212,11 @@ export default class Line extends HTMLElement{
 
 		let has_markers = false;
 		if(this.#data["x_axis"]["marker"]["markers"] && this.#data["x_axis"]["marker"]["markers"].length > 1) has_markers = true;
+
 		const markers_length = has_markers ? this.#data["x_axis"]["marker"]["markers"].length : this.#longest_dataset;
 		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
-		this.#ctx.font = this.#font;
-		this.#ctx.fillStyle = this.#data["x_axis"]["marker"]["color"] || this.#x_axis_marker_color;
+		this.#ctx.fillStyle = this.#data["x_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
 		for(let i = 0; i < markers_length; i++){
 			const x = i * gap_x_axis + this.#paddings["left"];
@@ -239,6 +230,7 @@ export default class Line extends HTMLElement{
 				this.#ctx.fillText(label, 0, 0);
 				this.#ctx.restore();
 			}
+
 			else{
 				this.#ctx.textBaseline = "top";
 				this.#ctx.textAlign = "center";
@@ -255,7 +247,7 @@ export default class Line extends HTMLElement{
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.top);
 		this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#data["y_axis"]["line"]["color"] || this.#y_axis_line_color;
+		this.#ctx.strokeStyle = this.#data["y_axis"]["line"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 		this.#ctx.lineWidth = 1;
 		this.#ctx.stroke();
 	}
@@ -263,10 +255,9 @@ export default class Line extends HTMLElement{
 	#draw_y_axis_markers(){
 		if(!("y_axis" in this.#data) || !("marker" in this.#data["y_axis"])) return;
 
-		for(let i = 0; i < this.#marker_count_y_axis; i++){
+		for(let i = 0; i < this.#y_axis_marker_count; i++){
 			this.#ctx.textAlign = "right";
-			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || this.#y_axis_marker_color;
-			this.#ctx.font = this.#font;
+			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.fillText((this.#max_value - i * this.#y_axis_step_value).toFixed(1), this.#paddings.left - this.#padding, i * this.#gap_y_axis + this.#paddings["top"]);
 		}
@@ -276,13 +267,13 @@ export default class Line extends HTMLElement{
 		if(!("grid" in this.#data)) return;
 		if(this.#data["grid"]["x"] !== true) return;
 
-		this.#ctx.strokeStyle = this.#data["grid"]["color"] || this.#grid_color;
+		this.#ctx.strokeStyle = this.#data["grid"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-secondary") || "gray";
 		this.#ctx.lineWidth = this.#grid_line_width;
 		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 
-		for (let i = 0; i < this.#marker_count_y_axis; i++) {
+		for (let i = 0; i < this.#y_axis_marker_count; i++) {
 			this.#ctx.beginPath();
-			this.#ctx.moveTo(this.#paddings.left - this.#marker_size, this.#gap_y_axis * i + this.#paddings["top"]);
+			this.#ctx.moveTo(this.#paddings.left - this.#grid_outside_size, this.#gap_y_axis * i + this.#paddings["top"]);
 			this.#ctx.lineTo(this.#paddings.right, this.#gap_y_axis * i + this.#paddings["top"]);
 			this.#ctx.stroke();
 		}
@@ -297,7 +288,7 @@ export default class Line extends HTMLElement{
 		const markers_length = has_markers ? this.#data["x_axis"]["marker"]["markers"].length : this.#longest_dataset;
 		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
-		this.#ctx.strokeStyle = this.#data["grid"]["color"] || this.#grid_color;
+		this.#ctx.strokeStyle = this.#data["grid"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-secondary") || "gray";
 		this.#ctx.lineWidth = this.#grid_line_width;
 		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 
@@ -305,7 +296,7 @@ export default class Line extends HTMLElement{
 			const x = i * gap_x_axis + this.#paddings["left"];
 			this.#ctx.beginPath();
 			this.#ctx.moveTo(x, this.#paddings.top);
-			this.#ctx.lineTo(x, this.#paddings.bottom + this.#marker_size);
+			this.#ctx.lineTo(x, this.#paddings.bottom + this.#grid_outside_size);
 			this.#ctx.stroke();
 		}
 	}
@@ -442,7 +433,6 @@ export default class Line extends HTMLElement{
 
 		this.#ctx.textBaseline = "middle";
 		this.#ctx.textAlign = "left";
-		this.#ctx.font = this.#font;
 
 		for(let i = 0; i < this.#data["datasets"].length; i++) start_x -= this.#ctx.measureText(this.#data["datasets"][i]["label"]).width / 2;
 
@@ -465,33 +455,28 @@ export default class Line extends HTMLElement{
 
 		this.#canvas.addEventListener('mousemove', (event) => {
 			const rect = this.#canvas.getBoundingClientRect();
-			const mouseX = event.clientX - rect.left;
-			const mouseY = event.clientY - rect.top;
+			const mouse_x = event.clientX - rect.left;
+			const mouse_y = event.clientY - rect.top;
 
 			let hovered_point = null;
 			let min_distance = Infinity;
 
-		let has_markers = false;
-		if(this.#data["x_axis"]["marker"] && this.#data["x_axis"]["marker"]["markers"] && this.#data["x_axis"]["marker"]["markers"].length > 1) has_markers = true;
-		const markers_length = has_markers ? this.#data["x_axis"]["marker"]["markers"].length : this.#longest_dataset;
-		const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
+			let has_markers = false;
+			if(this.#data["x_axis"]["marker"] && this.#data["x_axis"]["marker"]["markers"] && this.#data["x_axis"]["marker"]["markers"].length > 1) has_markers = true;
+			const markers_length = has_markers ? this.#data["x_axis"]["marker"]["markers"].length : this.#longest_dataset;
+			const gap_x_axis = has_markers ? (this.#paddings["right"] - this.#paddings["left"]) / (markers_length - 1) : this.#gap_x_axis;
 
-			for(const line of this.#data["datasets"]){
-				for(let i = 0; i < markers_length; i++){
-					const x = i * gap_x_axis + this.#paddings["left"];
-					const y = this.#paddings.bottom - (line["data"][i] - this.#min_value) * this.#scale_y;
+			for(const line of this.#data["datasets"]) for(let i = 0; i < markers_length; i++){
+				const x = i * gap_x_axis + this.#paddings["left"];
+				const y = this.#paddings.bottom - (line["data"][i] - this.#min_value) * this.#scale_y;
 
-					// Calculate distance from mouse to point
-					const distance = Math.sqrt(Math.pow(mouseX - x, 2) + Math.pow(mouseY - y, 2));
+				// Calculate distance from mouse to point
+				const distance = Math.sqrt(Math.pow(mouse_x - x, 2) + Math.pow(mouse_y - y, 2));
 
-					// If this point is closer than previous closest point
-					if (distance < min_distance && distance < this.#marker_size) {
-						min_distance = distance;
-						hovered_point = {
-							label: line["label"],
-							value: line["data"][i],
-						};
-					}
+				// If this point is closer than previous closest point
+				if (distance < min_distance && distance < this.#grid_outside_size) {
+					min_distance = distance;
+					hovered_point = { label: line["label"], value: line["data"][i] };
 				}
 			}
 
@@ -503,7 +488,7 @@ export default class Line extends HTMLElement{
 				this.#tooltip.textContent = `${hovered_point["label"]}: ${hovered_point["value"].toFixed(0)}`;
 			}
 
-			else { this.#tooltip.style.display = 'none'; }
+			else this.#tooltip.style.display = 'none';
 		});
 	}
 }
