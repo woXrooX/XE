@@ -6,7 +6,7 @@ export default class Pie extends HTMLElement {
 
 	#tooltip;
 
-	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary");
+	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#font_family = "Quicksand";
 	#hue = "230deg";
 

@@ -242,13 +242,14 @@ export default class Bar_y extends HTMLElement {
 
 	#draw_bars(){
 		for(const bar of this.#bars){
-			this.#ctx.beginPath()
+			this.#ctx.beginPath();
+			this.#ctx.setLineDash([0]);
 			this.#ctx.fillStyle = bar["color"];
 			this.#ctx.strokeStyle = bar["color"];
 			this.#ctx.roundRect(bar["x"], bar["y"], bar["width"], bar["height"], this.#border_radius);
-			this.#ctx.fill()
-			this.#ctx.stroke()
-			this.#ctx.closePath()
+			this.#ctx.fill();
+			this.#ctx.stroke();
+			this.#ctx.closePath();
 		}
 	}
 
@@ -256,6 +257,7 @@ export default class Bar_y extends HTMLElement {
 		if(!("x_axis" in this.#data) || this.#data["x_axis"]["line"] == false) return;
 
 		this.#ctx.beginPath();
+		this.#ctx.setLineDash([this.#data["x_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["right"], this.#paddings.bottom);
 
@@ -294,10 +296,11 @@ export default class Bar_y extends HTMLElement {
 	}
 
 	#draw_x_axis_grid_lines(){
-		if(!("x_axis" in this.#data) || this.#data["x_axis"]["grid_lines"] !== true) return;
+		if(!("grid" in this.#data)) return;
 
+		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 		this.#ctx.lineWidth = 0.5;
-		this.#ctx.strokeStyle = this.#y_axis_color;
+		this.#ctx.strokeStyle = this.#data["grid"]["color"] || this.#y_axis_color;
 
 		for (let i = 0; i < this.#y_axis_marker_count; i++) {
 			let y = this.#y_axis_marker_gap * i + this.#padding;
@@ -313,6 +316,7 @@ export default class Bar_y extends HTMLElement {
 		if(!("y_axis" in this.#data) || this.#data["y_axis"]["line"] == false) return;
 
 		this.#ctx.beginPath();
+		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings["left"], this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["left"], this.#paddings.top);
 
@@ -353,7 +357,7 @@ export default class Bar_y extends HTMLElement {
 				this.#tooltip.style.display = "block";
 				this.#tooltip.style.left = event.pageX + "px";
 				this.#tooltip.style.top = event.pageY - tooltip_height - 5 + "px";
-				this.#tooltip.textContent = `${hovered_bar.label} ${hovered_bar["display_value"]}`;
+				this.#tooltip.textContent = `${hovered_bar.label}${hovered_bar["display_value"] && ": " + hovered_bar["display_value"]}`;
 			}else this.#tooltip.style.display = "none";
 		});
 	}
