@@ -251,24 +251,23 @@ export default class Line extends HTMLElement{
 
 		this.#ctx.font = this.#font;
 		this.#ctx.fillStyle = this.#text_color;
-		this.#ctx.textBaseline = "top";
 
 		for(let i = 0; i < markers_length; i++){
 			const x = i * gap_x_axis + this.#paddings["left"];
-			const y = this.#paddings["bottom"];
 			const label = has_markers ? this.#data["x_axis"]["markers"][i] : i;
 
 			if(this.#rotated_labels === true){
 				this.#ctx.save();
-				this.#ctx.translate(x, y);
+				this.#ctx.translate(x, this.#paddings["bottom"] + this.#padding);
 				this.#ctx.rotate(Math.PI / 2);
 				this.#ctx.textAlign = "left";
 				this.#ctx.fillText(label, 0, 0);
 				this.#ctx.restore();
 			}
 			else{
+				this.#ctx.textBaseline = "top";
 				this.#ctx.textAlign = "center";
-				this.#ctx.fillText(label, x, y + this.#padding);
+				this.#ctx.fillText(label, x, this.#paddings["bottom"] + this.#padding);
 			}
 		}
 	}
