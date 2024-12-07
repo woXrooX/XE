@@ -1,5 +1,5 @@
 // Usage:
-// <x-bar-y-chart class="vh-50">
+// <x-bar-y-chart>
 // 	{
 // 		"sorted": false,
 // 		"hue": 231,
@@ -33,7 +33,7 @@
 // 			"line_dash": 5,
 // 			"color": "red"
 // 		},
-// 		"bars": [
+// 		"datasets": [
 // 			{
 // 				"label": "woXrooX",
 // 				"value": 150
@@ -56,11 +56,8 @@ export default class Bar_y extends HTMLElement {
 	#ctx;
 	#tooltip;
 
-	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#font_family = "Quicksand";
 	#hue = "230deg";
-	#x_axis_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-	#y_axis_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#rotated_labels = false;
 
 	#max_value = 0;
@@ -179,7 +176,6 @@ export default class Bar_y extends HTMLElement {
 	}
 
 	#init_values(){
-		if("text_color" in this.#data) this.#text_color = this.#data["text_color"];
 		if("hue" in this.#data) this.#hue = this.#data["hue"];
 		if("font_family" in this.#data) this.#font_family = this.#data["font_family"];
 		if("bar" in this.#data && "radius" in this.#data["bar"]) this.#border_radius = this.#data["bar"]["radius"];
@@ -193,10 +189,10 @@ export default class Bar_y extends HTMLElement {
 	}
 
 	#calculate_values(){
-		let longest_label = this.#data["bars"][0]["label"];
+		let longest_label = this.#data["datasets"][0]["label"];
 
 		// Find max value and longest label name
-		if(this.#max_value == 0) for(const bar of this.#data["bars"]){
+		if(this.#max_value == 0) for(const bar of this.#data["datasets"]){
 			if(bar["value"] > this.#max_value) this.#max_value = bar["value"];
 			if(bar["label"].length > longest_label.length) longest_label = bar["label"];
 		}
@@ -217,15 +213,15 @@ export default class Bar_y extends HTMLElement {
 		this.#bar_gap = this.#parent_node_width * 0.01 > 5 ? this.#parent_node_width * 0.01 : 5;
 
 		// If y_axis markers are true, make space
-		if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true) this.#paddings["left"] += max_numeric_value_text_width + this.#padding;
+		if("y_axis" in this.#data && "marker" in this.#data["y_axis"]) this.#paddings["left"] += max_numeric_value_text_width + this.#padding;
 
 		// Calc bar width, based on value after removing left-right padding, and gaps
-		this.#bar_width = (this.#paddings["right"] - this.#paddings["left"] - this.#bar_gap) / this.#data["bars"].length;
+		this.#bar_width = (this.#paddings["right"] - this.#paddings["left"] - this.#bar_gap) / this.#data["datasets"].length;
 
 		// Bar scale, needs to remove top and bottom padding (2x)
 		this.#bar_scale = raw_bar_area_height / this.#max_value;
 
-		if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true){
+		if("x_axis" in this.#data && "marker" in this.#data["x_axis"]){
 			let label_height = this.#ctx.measureText(longest_label).actualBoundingBoxAscent + this.#ctx.measureText(longest_label).actualBoundingBoxDescent;
 
 			this.#paddings["bottom"] -= label_height + this.#padding;
@@ -243,39 +239,39 @@ export default class Bar_y extends HTMLElement {
 		this.#y_axis_step_value = this.#max_value / (this.#y_axis_marker_count - 1);
 
 		// If sorted
-		if(this.#data["sorted"] == true) this.#data["bars"].sort((a, b) => b["value"] - a["value"]);
+		if(this.#data["sorted"] == true) this.#data["datasets"].sort((a, b) => b["value"] - a["value"]);
 	}
 
 	#init_bars(){
 		const sorted_bar_values = [];
 		this.#total_value = 0;
-		for(const bar of this.#data["bars"]){
+		for(const bar of this.#data["datasets"]){
 			this.#total_value += bar["value"];
 			sorted_bar_values.push(bar["value"]);
 		}
 		sorted_bar_values.sort((a, b) => b - a);
 
 		this.#bars = [];
-		for(let i = 0; i < this.#data["bars"].length; i++){
+		for(let i = 0; i < this.#data["datasets"].length; i++){
 			// Prevent minus values
-			let bar_value = this.#data["bars"][i]["value"] > 0 ? this.#data["bars"][i]["value"] : 0;
+			let bar_value = this.#data["datasets"][i]["value"] > 0 ? this.#data["datasets"][i]["value"] : 0;
 
 			let x = i * this.#bar_width + this.#bar_gap + this.#paddings["left"];
 			let y = this.#paddings["bottom"] - (bar_value * this.#bar_scale);
 			let height = bar_value * this.#bar_scale;
 			let width = this.#bar_width - this.#bar_gap;
 
-			const index_of_this_value = sorted_bar_values.indexOf(this.#data["bars"][i]["value"]);
-			const saturation = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
-			const lightness = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
+			const index_of_this_value = sorted_bar_values.indexOf(this.#data["datasets"][i]["value"]);
+			const saturation = 20 + (60 / (this.#data["datasets"].length)) * index_of_this_value;
+			const lightness = 20 + (60 / (this.#data["datasets"].length)) * index_of_this_value;
 
-			let bar_percentage = ((this.#data["bars"][i]["value"] / this.#total_value) * 100).toFixed(1);
+			let bar_percentage = ((this.#data["datasets"][i]["value"] / this.#total_value) * 100).toFixed(1);
 
 			let display_value = '';
 			if("values" in this.#data["bar"]){
-				if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) display_value = `${this.#data["bars"][i]["value"]} (${bar_percentage})%`;
+				if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) display_value = `${this.#data["datasets"][i]["value"]} (${bar_percentage})%`;
 				else if(this.#data["bar"]["values"]["percentage"] == true) display_value = `${bar_percentage}%`;
-				else if(this.#data["bar"]["values"]["numeric"] == true) display_value = `${this.#data["bars"][i]["value"]}`;
+				else if(this.#data["bar"]["values"]["numeric"] == true) display_value = `${this.#data["datasets"][i]["value"]}`;
 			}
 
 			this.#bars.push({
@@ -283,8 +279,8 @@ export default class Bar_y extends HTMLElement {
 				y: y,
 				width: width,
 				height: height,
-				label: this.#data["bars"][i]["label"],
-				value: this.#data["bars"][i]["value"],
+				label: this.#data["datasets"][i]["label"],
+				value: this.#data["datasets"][i]["value"],
 				display_value: display_value,
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				radius: this.#border_radius
@@ -306,20 +302,20 @@ export default class Bar_y extends HTMLElement {
 	}
 
 	#draw_x_axis_line(){
-		if(!("x_axis" in this.#data) || this.#data["x_axis"]["line"] == false) return;
+		if(!("x_axis" in this.#data) || !("line" in this.#data["x_axis"])) return;
 
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([this.#data["x_axis"]["line_dash"] || 0]);
+		this.#ctx.setLineDash([this.#data["x_axis"]["line"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["right"], this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#data["x_axis"]["color"] || this.#x_axis_color;
+		this.#ctx.strokeStyle = this.#data["x_axis"]["line"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 		this.#ctx.lineWidth = 2;
 		this.#ctx.stroke();
 	}
 
 	#draw_x_axis_markers(){
-		if(!("x_axis" in this.#data) || this.#data["x_axis"]["markers"] == false) return;
+		if(!("x_axis" in this.#data) || !("marker" in this.#data["x_axis"])) return;
 
 		for (const bar of this.#bars) {
 			let x = bar["x"] + this.#bar_width/2;
@@ -328,7 +324,7 @@ export default class Bar_y extends HTMLElement {
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.textAlign = "right";
 			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillStyle = this.#data["x_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
 			if(this.#rotated_labels == true){
 				this.#ctx.save();
@@ -352,7 +348,7 @@ export default class Bar_y extends HTMLElement {
 
 		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 		this.#ctx.lineWidth = 0.5;
-		this.#ctx.strokeStyle = this.#data["grid"]["color"] || this.#y_axis_color;
+		this.#ctx.strokeStyle = this.#data["grid"]["color"] ||getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "gray";
 
 		for (let i = 0; i < this.#y_axis_marker_count; i++) {
 			let y = this.#y_axis_marker_gap * i + this.#padding;
@@ -365,27 +361,27 @@ export default class Bar_y extends HTMLElement {
 	}
 
 	#draw_y_axis_line(){
-		if(!("y_axis" in this.#data) || this.#data["y_axis"]["line"] == false) return;
+		if(!("y_axis" in this.#data) || !("line" in this.#data["y_axis"])) return;
 
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
+		this.#ctx.setLineDash([this.#data["y_axis"]["line"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings["left"], this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["left"], this.#paddings.top);
 
-		this.#ctx.strokeStyle = this.#data["y_axis"]["color"] || this.#y_axis_color;
+		this.#ctx.strokeStyle = this.#data["y_axis"]["line"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 		this.#ctx.lineWidth = 2;
 		this.#ctx.stroke();
 		this.#ctx.closePath();
 	}
 
 	#draw_y_axis_markers(){
-		if(!("y_axis" in this.#data) || this.#data["y_axis"]["markers"] == false) return;
+		if(!("y_axis" in this.#data) || !("marker" in this.#data["y_axis"])) return;
 
 		for (let i = 0; i < this.#y_axis_marker_count; i++) {
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.textAlign = "right";
 			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
 			let value = (this.#max_value - i * this.#y_axis_step_value).toFixed(0);
 			let y = this.#y_axis_marker_gap * i + this.#padding;
