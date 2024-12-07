@@ -1,3 +1,55 @@
+// Usage:
+// <x-bar-x-chart class="vh-50">
+// 	{
+// 		"sorted": true,
+// 		"hue": 231,
+// 		"bar": {
+// 			"radius": 5,
+// 			"values": {
+// 				"numeric": false,
+// 				"percentage": true
+// 			}
+// 		},
+// 		"x_axis": {
+// 			"line": {
+// 				"line_dash": 5,
+// 				"color": "white"
+// 			},
+// 			"marker": {
+// 				"color": "white",
+//				"count": 10
+// 			}
+// 		},
+// 		"y_axis": {
+// 			"line": {
+// 				"line_dash": 5,
+// 				"color": "white"
+// 			},
+// 			"marker": {
+// 				"color": "white"
+// 			}
+// 		},
+// 		"grid": {
+// 			"line_dash": 5,
+// 			"color": "red"
+// 		},
+// 		"datasets": [
+// 			{
+// 				"label": "woXrooX",
+// 				"value": 150
+// 			},
+// 			{
+// 				"label": "Connexion",
+// 				"value": 90
+// 			},
+// 			{
+// 				"label": "Datalyse",
+// 				"value": 200
+// 			}
+// 		]
+// 	}
+// </x-bar-x-chart>
+
 export default class Bar_x extends HTMLElement {
 	#data;
 	#canvas;

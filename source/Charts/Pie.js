@@ -1,3 +1,29 @@
+// Usage:
+// <x-pie-chart>
+// 	{
+// 		"legends": true,
+// 		"hue": "230deg",
+// 		"values": {
+// 			"numeric": true,
+// 			"percentage": true
+// 		},
+// 		"datasets": [
+// 			{
+// 				"label": "woXrooX",
+// 				"value": 200
+// 			},
+// 			{
+// 				"label": "Connexion",
+// 				"value": 150
+// 			},
+// 			{
+// 				"label": "Datalyse",
+// 				"value": 50
+// 			}
+// 		]
+// 	}
+// </x-pie-chart>
+
 export default class Pie extends HTMLElement {
 	#data;
 	#canvas;

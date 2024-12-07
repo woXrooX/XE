@@ -1,3 +1,58 @@
+// Usage:
+// <x-line-chart>
+// 	{
+// 		"legends": true,
+// 		"data_points": true,
+// 		"fill_type": "gradient",
+// 		"x_axis": {
+// 			"line": {
+// 				"line_dash": 0,
+// 				"color": "white"
+// 			},
+// 			"marker": {
+// 				"color": "white",
+// 				"markers": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+// 			}
+// 		},
+// 		"y_axis": {
+// 			"line": {
+// 				"line_dash": 0,
+// 				"color": "white"
+// 			},
+// 			"marker": {
+// 				"color": "white",
+// 				"count": 5
+// 			}
+// 		},
+// 		"grid": {
+// 			"x": true,
+// 			"y": true,
+// 			"line_dash": 10,
+// 			"color": "white"
+// 		},
+// 		"datasets": [
+// 			{
+// 				"label": "A",
+// 				"line_dash": 10,
+// 				"color": "#ef9b20",
+// 				"data": [50, 20, 0, -250, 400]
+// 			},
+// 			{
+// 				"label": "B",
+// 				"line_dash": 0,
+// 				"color": "#27aeef",
+// 				"data": [150, 50, 150, 200, 250, 300, 350, 400, 450, 500, 550, 600, 650, 300, 350, 400, 450, 500, 550, 600, 650]
+// 			},
+// 			{
+// 				"label": "C",
+// 				"line_dash": 0,
+// 				"color": "#b33dc6",
+// 				"data": [-50, 70, 20, 90, 150, 120, 180]
+// 			}
+// 		]
+// 	}
+// </x-line-chart>
+
 export default class Line extends HTMLElement{
 	#data;
 	#canvas;
