@@ -2,7 +2,7 @@
 // <x-pie-chart>
 // 	{
 // 		"legends": true,
-// 		"hue": "230deg",
+// 		"hue": 230,
 // 		"values": {
 // 			"numeric": true,
 // 			"percentage": true
@@ -34,7 +34,7 @@ export default class Pie extends HTMLElement {
 
 	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#font_family = "Quicksand";
-	#hue = "230deg";
+	#hue = 230;
 
 	#x_center;
 	#y_center;
@@ -144,7 +144,7 @@ export default class Pie extends HTMLElement {
 		this.#total_value = 0;
 		const sorted_slice_values = [];
 
-		for(const slice of this.#data["pie"]){
+		for(const slice of this.#data["datasets"]){
 			this.#total_value += slice["value"];
 			sorted_slice_values.push(slice["value"]);
 		}
@@ -155,12 +155,12 @@ export default class Pie extends HTMLElement {
 		this.#slices = [];
 		let start_angle = 0;
 
-		for(const slice of this.#data["pie"]){
+		for(const slice of this.#data["datasets"]){
 			const slice_angle = (slice["value"] / this.#total_value) * 2 * Math.PI;
 
 			const index_of_this_value = sorted_slice_values.indexOf(slice["value"]);
-			const saturation = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
-			const lightness = 20 + (60 / (this.#data["pie"].length)) * index_of_this_value;
+			const saturation = 20 + (60 / (this.#data["datasets"].length)) * index_of_this_value;
+			const lightness = 20 + (60 / (this.#data["datasets"].length)) * index_of_this_value;
 
 			let slice_percentage = ((slice["value"] / this.#total_value) * 100).toFixed(2);
 
@@ -177,7 +177,7 @@ export default class Pie extends HTMLElement {
 				label: slice["label"],
 				value: slice["value"],
 				display_value: display_value,
-				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
+				color: `hsl(${this.#hue}deg, ${saturation}%, ${lightness}%)`,
 				hovered: false,
 				current_radius: this.#pie_radius
 			});

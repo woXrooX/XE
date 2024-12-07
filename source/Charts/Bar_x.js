@@ -1,5 +1,5 @@
 // Usage:
-// <x-bar-x-chart class="vh-50">
+// <x-bar-x-chart>
 // 	{
 // 		"sorted": true,
 // 		"hue": 231,
@@ -56,11 +56,8 @@ export default class Bar_x extends HTMLElement {
 	#ctx;
 	#tooltip;
 
-	#text_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 	#font_family = "Quicksand";
 	#hue = "230deg";
-	#x_axis_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-	#y_axis_color = getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
 	#max_value = 0;
 	#padding = 20;
@@ -179,10 +176,10 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#init_values(){
-		if("text_color" in this.#data) this.#text_color = this.#data["text_color"];
 		if("hue" in this.#data) this.#hue = this.#data["hue"];
 		if("font_family" in this.#data) this.#font_family = this.#data["font_family"];
 		if("bar" in this.#data && "radius" in this.#data["bar"]) this.#border_radius = this.#data["bar"]["radius"];
+		if("x_axis" in this.#data && "marker" in this.#data["x_axis"] && "count" in this.#data["x_axis"]["marker"]) this.#x_axis_marker_count = this.#data["x_axis"]["marker"]["count"];
 
 		this.#paddings = {
 			top: this.#padding,
@@ -193,10 +190,10 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#calculate_values(){
-		let longest_label = this.#data["bars"][0]["label"];
+		let longest_label = this.#data["datasets"][0]["label"];
 
 		// Find max value and longest label name
-		if(this.#max_value == 0) for(const bar of this.#data["bars"]){
+		if(this.#max_value == 0) for(const bar of this.#data["datasets"]){
 			if(bar["value"] > this.#max_value) this.#max_value = bar["value"];
 			if(bar["label"].length > longest_label.length) longest_label = bar["label"];
 		}
@@ -223,7 +220,7 @@ export default class Bar_x extends HTMLElement {
 
 		// Get text width of bar values
 		let bar_value_text_width = 0;
-		if("values" in this.#data["bar"]){
+		if("bar" in this.#data && "values" in this.#data["bar"]){
 			if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) bar_value_text_width = max_numeric_value_text_width + max_percentage_value_text_width;
 			else if(this.#data["bar"]["values"]["percentage"] == true) bar_value_text_width = max_percentage_value_text_width;
 			else if(this.#data["bar"]["values"]["numeric"] == true) bar_value_text_width = max_numeric_value_text_width;
@@ -236,7 +233,7 @@ export default class Bar_x extends HTMLElement {
 		}
 
 		// If y_axis values are true, make space
-		if("y_axis" in this.#data && this.#data["y_axis"]["markers"] == true){
+		if("y_axis" in this.#data && "marker" in this.#data["y_axis"]){
 			this.#paddings["left"] += longest_label_text_width;
 			this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] + this.#padding) / this.#max_value;
 
@@ -245,10 +242,10 @@ export default class Bar_x extends HTMLElement {
 		}
 
 		// If y_axis markers are true, make space
-		if("x_axis" in this.#data && this.#data["x_axis"]["markers"] == true) this.#paddings["bottom"] -= max_numeric_value_text_width + this.#padding;
+		if("x_axis" in this.#data && "marker" in this.#data["x_axis"]) this.#paddings["bottom"] -= max_numeric_value_text_width + this.#padding;
 
 		// calc bar width, based on value after removing top-bottom padding, and gaps
-		this.#bar_width = (this.#paddings["bottom"] - this.#paddings["top"] - this.#bar_gap) / this.#data["bars"].length;
+		this.#bar_width = (this.#paddings["bottom"] - this.#paddings["top"] - this.#bar_gap) / this.#data["datasets"].length;
 
 		// x_axis markers gap, based on bar area width (which is after removing left-right paddings)
 		// marker count - 1 to make space for 0.
@@ -256,39 +253,39 @@ export default class Bar_x extends HTMLElement {
 		this.#x_axis_step_value = this.#max_value / (this.#x_axis_marker_count - 1);
 
 		// If sorted
-		if(this.#data["sorted"] == true) this.#data["bars"].sort((a, b) => b["value"] - a["value"]);
+		if(this.#data["sorted"] == true) this.#data["datasets"].sort((a, b) => b["value"] - a["value"]);
 	}
 
 	#init_bars(){
 		const sorted_bar_values = [];
 		this.#total_value = 0;
-		for(const bar of this.#data["bars"]){
+		for(const bar of this.#data["datasets"]){
 			this.#total_value += bar["value"];
 			sorted_bar_values.push(bar["value"]);
 		}
 		sorted_bar_values.sort((a, b) => b - a);
 
 		this.#bars = [];
-		for(let i = 0; i < this.#data["bars"].length; i++){
+		for(let i = 0; i < this.#data["datasets"].length; i++){
 			// Prevent minus values
-			let bar_value = this.#data["bars"][i]["value"] > 0 ? this.#data["bars"][i]["value"] : 0;
+			let bar_value = this.#data["datasets"][i]["value"] > 0 ? this.#data["datasets"][i]["value"] : 0;
 
 			let y = i * this.#bar_width + this.#bar_gap + this.#paddings["top"];
 			let x = this.#paddings["left"];
 			let height = this.#bar_width - this.#bar_gap;
 			let width = bar_value * this.#bar_scale;
 
-			const index_of_this_value = sorted_bar_values.indexOf(this.#data["bars"][i]["value"]);
-			const saturation = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
-			const lightness = 20 + (60 / (this.#data["bars"].length)) * index_of_this_value;
+			const index_of_this_value = sorted_bar_values.indexOf(this.#data["datasets"][i]["value"]);
+			const saturation = 20 + (60 / (this.#data["datasets"].length)) * index_of_this_value;
+			const lightness = 20 + (60 / (this.#data["datasets"].length)) * index_of_this_value;
 
-			let bar_percentage = ((this.#data["bars"][i]["value"] / this.#total_value) * 100).toFixed(1);
+			let bar_percentage = ((this.#data["datasets"][i]["value"] / this.#total_value) * 100).toFixed(1);
 
 			let display_value = '';
-			if("values" in this.#data["bar"]){
-				if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) display_value = `${this.#data["bars"][i]["value"]} (${bar_percentage})%`;
+			if("bar" in this.#data && "values" in this.#data["bar"]){
+				if(this.#data["bar"]["values"]["numeric"] == true && this.#data["bar"]["values"]["percentage"] == true) display_value = `${this.#data["datasets"][i]["value"]} (${bar_percentage})%`;
 				else if(this.#data["bar"]["values"]["percentage"] == true) display_value = `${bar_percentage}%`;
-				else if(this.#data["bar"]["values"]["numeric"] == true) display_value = `${this.#data["bars"][i]["value"]}`;
+				else if(this.#data["bar"]["values"]["numeric"] == true) display_value = `${this.#data["datasets"][i]["value"]}`;
 			}
 
 			this.#bars.push({
@@ -296,8 +293,8 @@ export default class Bar_x extends HTMLElement {
 				y: y,
 				width: width,
 				height: height,
-				label: this.#data["bars"][i]["label"],
-				value: this.#data["bars"][i]["value"],
+				label: this.#data["datasets"][i]["label"],
+				value: this.#data["datasets"][i]["value"],
 				display_value: display_value,
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				radius: this.#border_radius
@@ -319,7 +316,7 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#draw_bar_values(){
-		if(!("values" in this.#data["bar"]) || this.#data["bar"]["values"]["numeric"] == false && this.#data["bar"]["values"]["percentage"] == false) return;
+		if(!("bar" in this.#data) || !("values" in this.#data["bar"]) || this.#data["bar"]["values"]["numeric"] == false && this.#data["bar"]["values"]["percentage"] == false) return;
 
 		for(const bar of this.#bars){
 			let x = bar["width"] + this.#paddings["left"] + this.#padding;
@@ -328,7 +325,7 @@ export default class Bar_x extends HTMLElement {
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.textAlign = "left";
 			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillStyle = this.#data["bar"]["values"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
 			y += this.#bar_width/2 - this.#bar_gap/2;
 			this.#ctx.fillText(bar["display_value"], x, y);
@@ -338,26 +335,26 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#draw_x_axis_line(){
-		if(!("x_axis" in this.#data) || this.#data["x_axis"]["line"] == false) return;
+		if(!("x_axis" in this.#data) || !("line" in this.#data["x_axis"])) return;
 
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([this.#data["x_axis"]["line_dash"] || 0]);
+		this.#ctx.setLineDash([this.#data["x_axis"]["line"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings.left, this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["right"], this.#paddings.bottom);
 
-		this.#ctx.strokeStyle = this.#data["x_axis"]["color"] || this.#x_axis_color;
+		this.#ctx.strokeStyle = this.#data["x_axis"]["line"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 		this.#ctx.lineWidth = 2;
 		this.#ctx.stroke();
 	}
 
 	#draw_x_axis_markers(){
-		if(!("x_axis" in this.#data) || this.#data["x_axis"]["markers"] == false) return;
+		if(!("x_axis" in this.#data) || !("marker" in this.#data["x_axis"])) return;
 
 		for (let i = 0; i < this.#x_axis_marker_count; i++) {
 			this.#ctx.textBaseline = "top";
 			this.#ctx.textAlign = "center";
 			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillStyle = this.#data["x_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
 			let value = (this.#max_value - i * this.#x_axis_step_value).toFixed(0);
 			let x = this.#paddings["right"] - (this.#x_axis_marker_gap * i);
@@ -368,21 +365,21 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#draw_y_axis_line(){
-		if(!("y_axis" in this.#data) || this.#data["y_axis"]["line"] == false) return;
+		if(!("y_axis" in this.#data) || !("line" in this.#data["y_axis"])) return;
 
 		this.#ctx.beginPath();
-		this.#ctx.setLineDash([this.#data["y_axis"]["line_dash"] || 0]);
+		this.#ctx.setLineDash([this.#data["y_axis"]["line"]["line_dash"] || 0]);
 		this.#ctx.moveTo(this.#paddings["left"], this.#paddings.bottom);
 		this.#ctx.lineTo(this.#paddings["left"], this.#paddings.top);
 
-		this.#ctx.strokeStyle = this.#data["y_axis"]["color"] || this.#y_axis_color;
+		this.#ctx.strokeStyle = this.#data["y_axis"]["line"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 		this.#ctx.lineWidth = 2;
 		this.#ctx.stroke();
 		this.#ctx.closePath();
 	}
 
 	#draw_y_axis_markers(){
-		if(!("y_axis" in this.#data) || this.#data["y_axis"]["markers"] == false) return;
+		if(!("y_axis" in this.#data) || !("marker" in this.#data["y_axis"])) return;
 
 		for (const bar of this.#bars) {
 			let x = bar["x"] - this.#padding;
@@ -391,7 +388,7 @@ export default class Bar_x extends HTMLElement {
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.textAlign = "right";
 			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#text_color;
+			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 			this.#ctx.fillText(bar["label"], x, y);
 
 			y += this.#bar_width;
@@ -403,7 +400,7 @@ export default class Bar_x extends HTMLElement {
 
 		this.#ctx.setLineDash([this.#data["grid"]["line_dash"] || 0]);
 		this.#ctx.lineWidth = 0.5;
-		this.#ctx.strokeStyle = this.#data["grid"]["color"] || this.#y_axis_color;
+		this.#ctx.strokeStyle = this.#data["grid"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "gray";
 
 		for (let i = 0; i < this.#x_axis_marker_count; i++) {
 			let x = this.#paddings["right"] - (this.#x_axis_marker_gap * i);

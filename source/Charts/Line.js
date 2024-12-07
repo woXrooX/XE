@@ -400,7 +400,12 @@ export default class Line extends HTMLElement{
 				);
 
 				if(i == (this.#x_axis_marker_count - 1)){
-					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
+					let last_data_point = this.#x_axis_marker_count < line["data"].length ? this.#x_axis_marker_count : line["data"].length;
+
+					this.#ctx.lineTo(
+						((last_data_point - 1) * this.#x_axis_gap + this.#paddings["left"]),
+						this.#paddings.bottom
+					);
 					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 					this.#ctx.fillStyle = line["color"];
 					this.#ctx.globalAlpha = this.#data["fill_type"] === "plain" ? 1 : 0.1;
@@ -441,7 +446,12 @@ export default class Line extends HTMLElement{
 				);
 
 				if(i == (this.#x_axis_marker_count - 1)){
-					this.#ctx.lineTo(this.#paddings.right, this.#paddings.bottom);
+					let last_data_point = this.#x_axis_marker_count < line["data"].length ? this.#x_axis_marker_count : line["data"].length;
+
+					this.#ctx.lineTo(
+						((last_data_point - 1) * this.#x_axis_gap + this.#paddings["left"]),
+						this.#paddings.bottom
+					);
 					this.#ctx.lineTo(this.#paddings.left, this.#paddings.bottom);
 					this.#ctx.closePath();
 				}
