@@ -218,6 +218,9 @@ export default class Bar_y extends HTMLElement {
 		// Calc bar width, based on value after removing left-right padding, and gaps
 		this.#bar_width = (this.#paddings["right"] - this.#paddings["left"] - this.#bar_gap) / this.#data["datasets"].length;
 
+		// Set limit 100 for max bar_width
+		if(this.#bar_width > 100) this.#bar_width = 100;
+
 		// Bar scale, needs to remove top and bottom padding (2x)
 		this.#bar_scale = raw_bar_area_height / this.#max_value;
 

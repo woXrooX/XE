@@ -247,6 +247,9 @@ export default class Bar_x extends HTMLElement {
 		// calc bar width, based on value after removing top-bottom padding, and gaps
 		this.#bar_width = (this.#paddings["bottom"] - this.#paddings["top"] - this.#bar_gap) / this.#data["datasets"].length;
 
+		// Set limit 100 for max bar_width
+		if(this.#bar_width > 100) this.#bar_width = 100;
+
 		// x_axis markers gap, based on bar area width (which is after removing left-right paddings)
 		// marker count - 1 to make space for 0.
 		this.#x_axis_marker_gap = (this.#paddings["right"] - this.#paddings["left"]) / (this.#x_axis_marker_count - 1);
