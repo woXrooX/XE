@@ -212,9 +212,6 @@ export default class Bar_x extends HTMLElement {
 		// Extract real area width of bars being drawed, remove paddings from 2 sides
 		let raw_bar_area_width = this.#canvas_DPI_width - this.#padding * 2;
 
-		// Bar gap, minimum good looking is 5
-		this.#bar_gap = this.#parent_node_height * 0.01 > 5 ? this.#parent_node_height * 0.01 : 5;
-
 		// Bar scale, needs to remove left and right padding (2x)
 		this.#bar_scale = raw_bar_area_width / this.#max_value;
 
@@ -244,8 +241,20 @@ export default class Bar_x extends HTMLElement {
 		// If y_axis markers are true, make space
 		if("x_axis" in this.#data && "marker" in this.#data["x_axis"]) this.#paddings["bottom"] -= max_numeric_value_text_width + this.#padding;
 
+		// Bar gap, minimum good looking is 5
+		this.#bar_gap = this.#parent_node_height * 0.01 > 5 ? this.#parent_node_height * 0.01 : 5;
+
 		// calc bar width, based on value after removing top-bottom padding, and gaps
-		this.#bar_width = (this.#paddings["bottom"] - this.#paddings["top"] - this.#bar_gap) / this.#data["datasets"].length;
+		this.#bar_width = (this.#paddings["bottom"] - this.#paddings["top"] - (this.#bar_gap * this.#data["datasets"].length)) / this.#data["datasets"].length;
+
+		const max_bar_width = 100;
+		const max_bar_width_gap = this.#bar_gap * 10;
+		const total_bars_space = ((max_bar_width + max_bar_width_gap) * this.#data["datasets"].length) - max_bar_width_gap;
+		const total_available_space = this.#paddings.bottom - this.#paddings.top;
+		if (this.#bar_width > max_bar_width && (total_available_space > total_bars_space)) {
+			this.#bar_width = max_bar_width;
+			this.#bar_gap = max_bar_width_gap;
+		}
 
 		// x_axis markers gap, based on bar area width (which is after removing left-right paddings)
 		// marker count - 1 to make space for 0.
@@ -265,14 +274,16 @@ export default class Bar_x extends HTMLElement {
 		}
 		sorted_bar_values.sort((a, b) => b - a);
 
+		const total_bars_space = ((this.#bar_width + this.#bar_gap) * this.#data["datasets"].length) - this.#bar_gap;
+		const y_offset = ((this.#paddings.bottom - this.#paddings.top) - total_bars_space) / 2;
 		this.#bars = [];
 		for(let i = 0; i < this.#data["datasets"].length; i++){
 			// Prevent minus values
 			let bar_value = this.#data["datasets"][i]["value"] > 0 ? this.#data["datasets"][i]["value"] : 0;
 
-			let y = i * this.#bar_width + this.#bar_gap + this.#paddings["top"];
+			let y = i * (this.#bar_width + this.#bar_gap) + y_offset + this.#paddings["top"];
 			let x = this.#paddings["left"];
-			let height = this.#bar_width - this.#bar_gap;
+			let height = this.#bar_width;
 			let width = bar_value * this.#bar_scale;
 
 			const index_of_this_value = sorted_bar_values.indexOf(this.#data["datasets"][i]["value"]);
@@ -320,17 +331,14 @@ export default class Bar_x extends HTMLElement {
 
 		for(const bar of this.#bars){
 			let x = bar["width"] + this.#paddings["left"] + this.#padding;
-			let y = bar["y"];
+			let y = bar["y"] + this.#bar_width / 2;
 
 			this.#ctx.textBaseline = "middle";
 			this.#ctx.textAlign = "left";
 			this.#ctx.font = `1em ${this.#font_family}`;
 			this.#ctx.fillStyle = this.#data["bar"]["values"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 
-			y += this.#bar_width/2 - this.#bar_gap/2;
 			this.#ctx.fillText(bar["display_value"], x, y);
-
-			y += this.#bar_width;
 		}
 	}
 
