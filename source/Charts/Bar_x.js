@@ -204,9 +204,6 @@ export default class Bar_x extends HTMLElement {
 		// Max value width as a text
 		let max_numeric_value_text_width = this.#ctx.measureText(this.#max_value).width;
 
-		// Longest label name width
-		let longest_label_text_width = this.#ctx.measureText(longest_label).width + this.#padding;
-
 		let max_percentage_value_text_width = this.#ctx.measureText("(100%)").width;
 
 		// Extract real area width of bars being drawed, remove paddings from 2 sides
@@ -227,15 +224,6 @@ export default class Bar_x extends HTMLElement {
 		if(bar_value_text_width > 0){
 			this.#paddings["right"] -= bar_value_text_width + this.#padding;
 			this.#bar_scale = (raw_bar_area_width - bar_value_text_width - this.#padding) / this.#max_value;
-		}
-
-		// If y_axis values are true, make space
-		if("y_axis" in this.#data && "marker" in this.#data["y_axis"]){
-			this.#paddings["left"] += longest_label_text_width;
-			this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] + this.#padding) / this.#max_value;
-
-			// If both y_axis values and bar values are true, make space for both of them
-			if(bar_value_text_width > 0) this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] - bar_value_text_width) / this.#max_value;
 		}
 
 		// If y_axis markers are true, make space
@@ -330,7 +318,7 @@ export default class Bar_x extends HTMLElement {
 		if(!("bar" in this.#data) || !("values" in this.#data["bar"]) || this.#data["bar"]["values"]["numeric"] == false && this.#data["bar"]["values"]["percentage"] == false) return;
 
 		for(const bar of this.#bars){
-			let x = bar["width"] + this.#paddings["left"] + this.#padding;
+			let x = this.#paddings.right + this.#padding;
 			let y = bar["y"] + this.#bar_width / 2;
 
 			this.#ctx.textBaseline = "middle";
@@ -388,15 +376,20 @@ export default class Bar_x extends HTMLElement {
 
 	#draw_y_axis_markers(){
 		if(!("y_axis" in this.#data) || !("marker" in this.#data["y_axis"])) return;
+		this.#ctx.setLineDash([0]);
 
 		for (const bar of this.#bars) {
-			let x = bar["x"] - this.#padding;
+			let x = bar["x"] + this.#padding;
 			let y = bar["y"] + this.#bar_width/2;
 
 			this.#ctx.textBaseline = "middle";
-			this.#ctx.textAlign = "right";
+			this.#ctx.textAlign = "left";
 			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
+
+			this.#ctx.strokeStyle = "black";
+			this.#ctx.strokeText(bar["label"], x, y);
+
+			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || "white";
 			this.#ctx.fillText(bar["label"], x, y);
 
 			y += this.#bar_width;
