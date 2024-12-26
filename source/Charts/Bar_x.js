@@ -26,7 +26,8 @@
 // 				"color": "white"
 // 			},
 // 			"marker": {
-// 				"color": "white"
+// 				"color": "white",
+// 				"position": "on_bars"
 // 			}
 // 		},
 // 		"grid": {
@@ -230,7 +231,12 @@ export default class Bar_x extends HTMLElement {
 		}
 
 		// If y_axis values are true, make space
-		if("y_axis" in this.#data && "marker" in this.#data["y_axis"]){
+		if(
+			"y_axis" in this.#data &&
+			"marker" in this.#data["y_axis"] &&
+			"position" in this.#data["y_axis"]["marker"] &&
+			this.#data["y_axis"]["marker"]["position"] != "on_bars"
+		){
 			this.#paddings["left"] += longest_label_text_width;
 			this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] + this.#padding) / this.#max_value;
 
@@ -389,18 +395,35 @@ export default class Bar_x extends HTMLElement {
 	#draw_y_axis_markers(){
 		if(!("y_axis" in this.#data) || !("marker" in this.#data["y_axis"])) return;
 
-		for (const bar of this.#bars) {
-			let x = bar["x"] - this.#padding;
-			let y = bar["y"] + this.#bar_width/2;
+		this.#ctx.setLineDash([0]);
+		this.#ctx.textBaseline = "middle";
+		this.#ctx.font = `1em ${this.#font_family}`;
 
-			this.#ctx.textBaseline = "middle";
-			this.#ctx.textAlign = "right";
-			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-			this.#ctx.fillText(bar["label"], x, y);
+		if ("position" in this.#data["y_axis"]["marker"] && this.#data["y_axis"]["marker"]["position"] === "on_bars")
+			for (const bar of this.#bars) {
+				let x = bar["x"] + this.#padding;
+				let y = bar["y"] + this.#bar_width/2;
 
-			y += this.#bar_width;
-		}
+				this.#ctx.textAlign = "left";
+				this.#ctx.strokeStyle = "black";
+				this.#ctx.strokeText(bar["label"], x, y);
+				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || "white";
+				this.#ctx.fillText(bar["label"], x, y);
+
+				y += this.#bar_width;
+			}
+
+		else
+			for (const bar of this.#bars) {
+				let x = bar["x"] - this.#padding;
+				let y = bar["y"] + this.#bar_width/2;
+
+				this.#ctx.textAlign = "right";
+				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
+				this.#ctx.fillText(bar["label"], x, y);
+
+				y += this.#bar_width;
+			}
 	}
 
 	#draw_y_axis_grid_lines(){
