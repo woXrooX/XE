@@ -225,7 +225,7 @@ export default class Bar_x extends HTMLElement {
 		}
 
 		// If values are true, make space
-		if(bar_value_text_width > 0){
+		if(bar_value_text_width > 0 && this.#data?.["y_axis"]?.["marker"]?.["position"] != "on_bars"){
 			this.#paddings["right"] -= bar_value_text_width + this.#padding;
 			this.#bar_scale = (raw_bar_area_width - bar_value_text_width - this.#padding) / this.#max_value;
 		}
@@ -334,6 +334,7 @@ export default class Bar_x extends HTMLElement {
 
 	#draw_bar_values(){
 		if(!("bar" in this.#data) || !("values" in this.#data["bar"]) || this.#data["bar"]["values"]["numeric"] == false && this.#data["bar"]["values"]["percentage"] == false) return;
+		if (this.#data["y_axis"]?.["marker"]?.["position"] === "on_bars") return;
 
 		for(const bar of this.#bars){
 			let x = bar["width"] + this.#paddings["left"] + this.#padding;
@@ -403,12 +404,13 @@ export default class Bar_x extends HTMLElement {
 			for (const bar of this.#bars) {
 				let x = bar["x"] + this.#padding;
 				let y = bar["y"] + this.#bar_width/2;
+				let text = `${bar["label"]}: ${bar["display_value"]}`;
 
 				this.#ctx.textAlign = "left";
 				this.#ctx.strokeStyle = "black";
-				this.#ctx.strokeText(bar["label"], x, y);
+				this.#ctx.strokeText(text, x, y);
 				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || "white";
-				this.#ctx.fillText(bar["label"], x, y);
+				this.#ctx.fillText(text, x, y);
 
 				y += this.#bar_width;
 			}
