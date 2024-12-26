@@ -26,7 +26,8 @@
 // 				"color": "white"
 // 			},
 // 			"marker": {
-// 				"color": "white"
+// 				"color": "white",
+// 				"position": "on_bars"
 // 			}
 // 		},
 // 		"grid": {
@@ -224,13 +225,17 @@ export default class Bar_x extends HTMLElement {
 		}
 
 		// If values are true, make space
-		if(bar_value_text_width > 0){
+		if(bar_value_text_width > 0 && this.#data?.["y_axis"]?.["marker"]?.["position"] != "on_bars"){
 			this.#paddings["right"] -= bar_value_text_width + this.#padding;
 			this.#bar_scale = (raw_bar_area_width - bar_value_text_width - this.#padding) / this.#max_value;
 		}
 
 		// If y_axis values are true, make space
-		if("y_axis" in this.#data && "marker" in this.#data["y_axis"]){
+		if(
+			"y_axis" in this.#data &&
+			"marker" in this.#data["y_axis"] &&
+			this.#data["y_axis"]?.["marker"]?.["position"] !== "on_bars"
+		){
 			this.#paddings["left"] += longest_label_text_width;
 			this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] + this.#padding) / this.#max_value;
 
@@ -327,7 +332,14 @@ export default class Bar_x extends HTMLElement {
 	}
 
 	#draw_bar_values(){
-		if(!("bar" in this.#data) || !("values" in this.#data["bar"]) || this.#data["bar"]["values"]["numeric"] == false && this.#data["bar"]["values"]["percentage"] == false) return;
+		if(
+			!("bar" in this.#data) ||
+			!("values" in this.#data["bar"]) ||
+			this.#data["bar"]["values"]["numeric"] == false &&
+			this.#data["bar"]["values"]["percentage"] == false
+		) return;
+
+		if (this.#data["y_axis"]?.["marker"]?.["position"] === "on_bars") return;
 
 		for(const bar of this.#bars){
 			let x = bar["width"] + this.#paddings["left"] + this.#padding;
@@ -389,18 +401,36 @@ export default class Bar_x extends HTMLElement {
 	#draw_y_axis_markers(){
 		if(!("y_axis" in this.#data) || !("marker" in this.#data["y_axis"])) return;
 
-		for (const bar of this.#bars) {
-			let x = bar["x"] - this.#padding;
-			let y = bar["y"] + this.#bar_width/2;
+		this.#ctx.setLineDash([0]);
+		this.#ctx.textBaseline = "middle";
+		this.#ctx.font = `1em ${this.#font_family}`;
 
-			this.#ctx.textBaseline = "middle";
-			this.#ctx.textAlign = "right";
-			this.#ctx.font = `1em ${this.#font_family}`;
-			this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
-			this.#ctx.fillText(bar["label"], x, y);
+		if (this.#data["y_axis"]["marker"]?.["position"] === "on_bars")
+			for (const bar of this.#bars) {
+				let x = bar["x"] + this.#padding;
+				let y = bar["y"] + this.#bar_width/2;
+				let text = `${bar["label"]}: ${bar["display_value"]}`;
 
-			y += this.#bar_width;
-		}
+				this.#ctx.textAlign = "left";
+				this.#ctx.strokeStyle = "black";
+				this.#ctx.strokeText(text, x, y);
+				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || "white";
+				this.#ctx.fillText(text, x, y);
+
+				y += this.#bar_width;
+			}
+
+		else
+			for (const bar of this.#bars) {
+				let x = bar["x"] - this.#padding;
+				let y = bar["y"] + this.#bar_width/2;
+
+				this.#ctx.textAlign = "right";
+				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
+				this.#ctx.fillText(bar["label"], x, y);
+
+				y += this.#bar_width;
+			}
 	}
 
 	#draw_y_axis_grid_lines(){
