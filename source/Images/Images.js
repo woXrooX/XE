@@ -2,12 +2,14 @@ export default class Images extends HTMLElement{
 	#JSON = {};
 	#main_element = null;
 	#first_img_element = null;
+	#div_elements = null;
+	#clicked_img_src = null;
+	#original_first_img_src = null;
+
 
 	constructor(){
 		super();
 		this.#JSON = JSON.parse(this.innerHTML).constructor === Object ? JSON.parse(this.innerHTML) : {};
-		this.#JSON["width"] = this.#JSON["height"] ?? "100px";
-		this.#JSON["height"] = this.#JSON["height"] ?? "100px";
 
 		this.replaceChildren();
 		this.shadow = this.attachShadow({mode: 'closed'});
@@ -23,27 +25,20 @@ export default class Images extends HTMLElement{
 				<style>
 					:host{
 						display: inline-block;
-						height: ${this.#JSON["height"]};
+						height: 100%;
 						cursor: pointer;
 						user-select: none;
 						overflow: hidden;
 					}
 
-					${this.getAttribute("version") === "2" ? 
+					${this.#JSON["version"] === "2" ? 
 						`main{
-							max-width: 800px;
-							width: auto;
-							height: auto;
+							width: 100%;
+							height: 100%;
 							
 							display: grid;
 							grid-template-columns: 1fr 1fr;
 							grid-gap: 3px;
-	
-							& img{
-								width: ${this.#JSON["width"]};
-								height: ${this.#JSON["height"]};
-								object-fit: ${this.#JSON["object-fit"] ?? "initial"};
-							}
 	
 							&.grid-1 {
 								grid-template-columns: 1fr;
@@ -84,14 +79,105 @@ export default class Images extends HTMLElement{
 									grid-row: span 2;
 								}
 							}
+
+							& > div{
+								width: 100%;
+								height: 100%;
+								transform: scale(1);
+								overflow: hidden;
+
+								&::after{
+									pointer-events: none;
+									content: 'view';
+									opacity: 0;
+
+									background-color: rgba(0, 0, 0, 0.7);
+									color: white;
+
+									font-size: 250%;
+
+									width: 100%;
+									height: 100%;
+
+									display: grid;
+									place-items: center;
+
+									position: absolute;
+									top: 0px;
+									left: 0px;
+									z-index: 21;
+
+									transition: opacity ease-in-out 250ms;
+								}
+
+								&:hover{
+									&::after{
+										opacity: 1;
+									}
+								}
+
+								& > img{
+									width: 100%;
+									height: 100%;
+									object-fit: cover;
+								}
+							}
+
+							&.active{
+								background: hsla(0deg, 0%, 0%, 0.5);
+								backdrop-filter: blur(20px);
+								-webkit-backdrop-filter: blur(20px);
+
+								height: 100dvh;
+								width: 100dvw;
+								
+								display: flex;
+								flex-direction: row;
+
+								position: fixed;
+								top: 0;
+								left: 0;
+								z-index: 20;
+
+								& > div{
+									overflow: hidden;
+	
+									transform: unset;
+									width: unset;
+									height: unset;
+	
+									min-width: 100dvw;
+									min-height: 100dvh;
+	
+									display: grid;
+									place-content: center;
+	
+									& > img{
+										cursor: initial;
+										width: auto;
+										height: auto;
+										max-width: 90dvw;
+										max-height: 90dvh;
+										object-fit: contain;
+										filter: drop-shadow(0px 5px 20px rgba(0, 0, 0, 0.8));
+									}
+
+									&:hover{
+										&::after{
+											transition: opacity ease-in-out 0ms;
+											opacity: 0;
+										}
+									}
+								}
+							}
 						}`
 
 						: 
 
 						`main{
 							display: inline-block;
-							width: ${this.#JSON["width"]};
-							height: ${this.#JSON["height"]};
+							width: 100%;
+							height: 100%;
 
 							/* Disable scrollbar START */
 							-ms-overflow-style: none; /* IE and Edge */
@@ -104,8 +190,8 @@ export default class Images extends HTMLElement{
 
 							& > :first-child{
 								display: block;
-								width: ${this.#JSON["width"]};
-								height: ${this.#JSON["height"]};
+								width: 100%;
+								height: 100%;
 								transform: scale(1);
 								overflow: hidden;
 
@@ -141,9 +227,9 @@ export default class Images extends HTMLElement{
 
 
 								& > img{
-									width: ${this.#JSON["width"]};
-									height: ${this.#JSON["height"]};
-									object-fit: ${this.#JSON["object-fit"] ?? "initial"};
+									width: 100%;
+									height: 100%;
+									object-fit: cover;
 								}
 							}
 
@@ -218,20 +304,40 @@ export default class Images extends HTMLElement{
 
 		Listeners: {
 			this.#main_element = this.shadow.querySelector("main");
+			
+			// version 1
 			this.#first_img_element = this.shadow.querySelector("main > :first-child");
+			this.#first_img_element.onclick = (event)=>{if(!this.#main_element.classList.contains("active")) this.#show();};
+			
+			// version 2
+			if(this.#JSON["version"]){
+				
+				this.#div_elements = this.#main_element.querySelectorAll("div");
+				
+				for (const selected_div of this.#div_elements) {
+					selected_div.onclick = () => { 
 
-			this.#first_img_element.onclick = (event)=>{
-				if(!this.#main_element.classList.contains("active")) this.#show();
-			};
+						// Store the clicked img src
+						this.#clicked_img_src = selected_div.querySelector("img").src;
+						
+						if(!this.#main_element.classList.contains("active")) this.#show();
+					};
+				}
 
-			this.#main_element.onclick = (event)=>{
-				if(event.target.nodeName !== "IMG" && this.#main_element.classList.contains("active")) this.#hide();
-			};
+				// Store the original src of the first image
+				const first_image = this.#main_element.querySelector("div > img");
+				if (first_image) this.#original_first_img_src = first_image.src;
+			}
+			
+			this.#main_element.onclick = (event)=>{ if(event.target.nodeName !== "IMG" && this.#main_element.classList.contains("active")) this.#hide(); };
 		}
 	}
 
 	#show(){
 		this.#main_element.classList.add("active");
+
+		// Set the current img src clicked image
+		if(this.#JSON["version"]) this.#main_element.querySelector("main.active div img").src = this.#clicked_img_src;
 
 		// disable scrolling
 		document.body.style = "overflow: hidden";
@@ -239,6 +345,9 @@ export default class Images extends HTMLElement{
 
 	#hide(){
 		this.#main_element.classList.remove("active");
+
+		// Reset the first image's src to its original value
+		if(this.#JSON["version"]) this.#main_element.querySelector("div > img").src = this.#original_first_img_src;
 
 		// enable scrolling
 		document.body.removeAttribute("style");
