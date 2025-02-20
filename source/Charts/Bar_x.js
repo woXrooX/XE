@@ -82,7 +82,13 @@ export default class Bar_x extends HTMLElement {
 		super();
 
 		this.shadow = this.attachShadow({ mode: "closed" });
-		this.#data = JSON.parse(this.innerHTML);
+
+		this.#data = JSON.parse(this.innerHTML).constructor === Object ? JSON.parse(this.innerHTML) : {};
+
+		if (!("datasets" in this.#data) || this.#data["datasets"].length === 0) {
+			this.shadow.innerHTML = "Bar_x: Invalid JSON";
+			return;
+		}
 
 		// Style element
 		const style = document.createElement("style");
