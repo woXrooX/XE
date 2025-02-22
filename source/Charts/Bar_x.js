@@ -55,6 +55,7 @@ export default class Bar_x extends HTMLElement {
 	#data;
 	#canvas;
 	#ctx;
+	#resize_observer_object = null;
 	#tooltip;
 
 	#font_family = "Quicksand";
@@ -126,16 +127,25 @@ export default class Bar_x extends HTMLElement {
 		this.#canvas = document.createElement("canvas");
 		this.shadow.appendChild(this.#canvas);
 		this.#ctx = this.#canvas.getContext("2d");
+	}
 
+	connectedCallback() {
 		this.#resize_observer();
-
 		this.#init_on_hover_bar();
+	}
+
+	disconnectedCallback() {
+		// Clean up the observer when element is removed
+		if (this.#resize_observer_object) {
+		  this.#resize_observer_object.disconnect();
+		  this.#resize_observer_object = null;
+		}
 	}
 
 	////// APIs
 	#resize_observer(){
-		const resize_observer_object = new ResizeObserver(this.#init);
-		resize_observer_object.observe(this.parentNode);
+		this.#resize_observer_object = new ResizeObserver(this.#init);
+		this.#resize_observer_object.observe(this.parentNode);
 	}
 
 	#init = ()=>{
