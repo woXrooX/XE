@@ -1,6 +1,6 @@
 export default class v1 {
 
-	static build(ctx, canvas, colors) {
+	static build(canvas, ctx) {
 		// Create particles only on first run
 		this.particles = Array(50).fill().map(() => new Particle(canvas));
 
@@ -23,7 +23,7 @@ export default class v1 {
 		}
 
 		// Request next frame with the same context and parameters
-		requestAnimationFrame(() => this.build(ctx, canvas));
+		requestAnimationFrame(() => this.build(canvas, ctx));
 	}
 }
 
