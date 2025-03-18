@@ -37,7 +37,8 @@
 // 		"datasets": [
 // 			{
 // 				"label": "woXrooX",
-// 				"value": 150
+// 				"value": 150,
+// 				"path": "/path/to/file"
 // 			},
 // 			{
 // 				"label": "Connexion",
@@ -67,6 +68,9 @@ export default class Bar_x extends HTMLElement {
 	#x_axis_marker_count = 5;
 	#x_axis_marker_gap = 0;
 	#x_axis_step_value = 0;
+
+	#file_width = 30;
+	#file_height = 30;
 
 	#bars = [];
 	#total_value = 0;
@@ -252,7 +256,7 @@ export default class Bar_x extends HTMLElement {
 			"marker" in this.#data["y_axis"] &&
 			this.#data["y_axis"]?.["marker"]?.["position"] !== "on_bars"
 		){
-			this.#paddings["left"] += longest_label_text_width;
+			this.#paddings["left"] += longest_label_text_width + this.#file_width;
 			this.#bar_scale = (raw_bar_area_width - this.#paddings["left"] + this.#padding) / this.#max_value;
 
 			// If both y_axis values and bar values are true, make space for both of them
@@ -329,7 +333,8 @@ export default class Bar_x extends HTMLElement {
 				value: this.#data["datasets"][i]["value"],
 				display_value: display_value,
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
-				radius: this.#border_radius
+				radius: this.#border_radius,
+				file_path: this.#data["datasets"][i]["path"] ?? null
 			});
 		}
 	}
@@ -427,7 +432,21 @@ export default class Bar_x extends HTMLElement {
 				let y = bar["y"] + this.#bar_width/2;
 				let text = `${bar["label"]}: ${bar["display_value"]}`;
 
+				if(bar["file_path"] != null){
+					let img_x = x;
+					let img_y = bar["y"] + this.#bar_width/2 - this.#file_width/2;
+					x = x + this.#file_width * 1.5;
+
+					this.#ctx.imageSmoothingEnabled = true;
+					this.#ctx.imageSmoothingQuality = 'high';
+
+					const img = new Image();
+					img.onload = ()=> this.#ctx.drawImage(img, img_x, img_y, this.#file_width, this.#file_height);
+					img.src = bar["file_path"];
+				}
+
 				this.#ctx.textAlign = "left";
+				this.#ctx.textBaseline = "middle";
 				this.#ctx.strokeStyle = "black";
 				this.#ctx.strokeText(text, x, y);
 				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || "white";
@@ -438,10 +457,23 @@ export default class Bar_x extends HTMLElement {
 
 		else
 			for (const bar of this.#bars) {
-				let x = bar["x"] - this.#padding;
+				let x = this.#padding;
 				let y = bar["y"] + this.#bar_width/2;
 
-				this.#ctx.textAlign = "right";
+				if(bar["file_path"] != null){
+					let img_x = this.#padding;
+					let img_y = bar["y"] + this.#bar_width/2 - this.#file_width/2;
+					x = x + this.#file_width * 1.5;
+
+					this.#ctx.imageSmoothingEnabled = true;
+					this.#ctx.imageSmoothingQuality = 'high';
+
+					const img = new Image();
+					img.onload = ()=> this.#ctx.drawImage(img, img_x, img_y, this.#file_width, this.#file_height);
+					img.src = bar["file_path"];
+				}
+
+				this.#ctx.textAlign = "left";
 				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
 				this.#ctx.fillText(bar["label"], x, y);
 
