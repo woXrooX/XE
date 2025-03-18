@@ -1,4 +1,4 @@
-export default class v1 {
+export default class Version_1 {
 
 	static build(canvas, ctx) {
 		// Create particles only on first run
