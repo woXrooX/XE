@@ -1,6 +1,4 @@
 export default class Background extends HTMLElement {
-	static #content_func = null;
-
 	#JSON = {};
 
 	constructor() {
@@ -40,7 +38,7 @@ export default class Background extends HTMLElement {
 			<div></div>
 		`;
 
-
+		this.canvas = this.shadow.querySelector("canvas");
 		this.ctx = this.canvas.getContext("2d");
 
 		// Set initial canvas size
@@ -57,10 +55,9 @@ export default class Background extends HTMLElement {
 	}
 
 	#load_version = async()=>{
-		switch (this.data["version"]) {
+		switch (this.#JSON["version"]) {
 			case 1:
-				const v1 = await (await import(`./versions/v1.js`)).default;
-				v1.build(this.canvas, this.ctx);
+				await (await import(`./versions/Version_1.js`)).default.build(this.canvas, this.ctx);
 				break;
 
 			default:
