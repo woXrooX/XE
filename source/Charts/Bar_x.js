@@ -334,7 +334,7 @@ export default class Bar_x extends HTMLElement {
 				display_value: display_value,
 				color: `hsl(${this.#hue}, ${saturation}%, ${lightness}%)`,
 				radius: this.#border_radius,
-				file_path: this.#data["datasets"][i]["path"] ?? null
+				file_path: this.#data["datasets"][i]["file_path"] ?? null
 			});
 		}
 	}
@@ -432,10 +432,7 @@ export default class Bar_x extends HTMLElement {
 				let y = bar["y"] + this.#bar_width/2;
 				let text = `${bar["label"]}: ${bar["display_value"]}`;
 
-				if(bar["file_path"] != null){
-					this.#draw_image(x, y, bar["file_path"]);
-					x = x + this.#file_width * 1.2;
-				}
+				x = this.#draw_image(x, y, bar["file_path"]);
 
 				this.#ctx.textAlign = "left";
 				this.#ctx.textBaseline = "middle";
@@ -452,10 +449,7 @@ export default class Bar_x extends HTMLElement {
 				let x = this.#padding;
 				let y = bar["y"] + this.#bar_width/2;
 
-				if(bar["file_path"] != null){
-					this.#draw_image(x, y, bar["file_path"]);
-					x = x + this.#file_width * 1.2;
-				}
+				x = this.#draw_image(x, y, bar["file_path"]);
 
 				this.#ctx.textAlign = "left";
 				this.#ctx.fillStyle = this.#data["y_axis"]["marker"]["color"] || getComputedStyle(document.querySelector(":root")).getPropertyValue("--color-text-primary") || "black";
@@ -468,6 +462,8 @@ export default class Bar_x extends HTMLElement {
 	// Helper function for #draw_y_axis_markers
 	// Draws images
 	#draw_image(x, y, file_path){
+		if(file_path == null) return x;
+
 		let image_y = y - this.#file_height / 2;
 
 		this.#ctx.imageSmoothingEnabled = true;
@@ -476,6 +472,8 @@ export default class Bar_x extends HTMLElement {
 		const image = new Image();
 		image.onload = ()=> this.#ctx.drawImage(image, x, image_y, this.#file_width, this.#file_height);
 		image.src = file_path;
+
+		return x + this.#file_width + 5;
 	}
 
 	#draw_y_axis_grid_lines(){
