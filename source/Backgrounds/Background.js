@@ -17,6 +17,13 @@ export default class Background extends HTMLElement {
 		this.#JSON = JSON.parse(this.innerHTML).constructor === Object ? JSON.parse(this.innerHTML) : {};
 		this.replaceChildren();
 
+		let gradient_colors = '';
+		if(this.#JSON["colors"]) gradient_colors = `linear-gradient(45deg, ${this.#JSON["colors"].join(", ")})`;
+		else gradient_colors = `linear-gradient(45deg, rgba(0, 255, 100, 0.1), rgba(255, 0, 100, 0.1), rgba(100, 0, 255, 0.1))`;
+
+		console.log(gradient_colors);
+
+
 		this.shadow.innerHTML = `
 			<style>
 				:host{
@@ -40,12 +47,7 @@ export default class Background extends HTMLElement {
 					left: 0;
 					width: 100%;
 					height: 100%;
-					background: linear-gradient(
-						45deg,
-						rgba(0, 255, 100, 0.1),
-						rgba(255, 0, 100, 0.1),
-						rgba(100, 0, 255, 0.1)
-					);
+					background: ${gradient_colors};
 					mix-blend-mode: overlay;
 					pointer-events: none;
 				}
