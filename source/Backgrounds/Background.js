@@ -1,9 +1,11 @@
 // Usage:
 // <x-background>
-// 	{
-// 		"version": 1,
-// 		"colors": []
-// 	}
+// {
+	// "version": 1,
+	// "colors": [],
+	// "parent_selector": "container.x_background_1",
+	// "z_index": -1
+// }
 // </x-background>
 
 export default class Background extends HTMLElement {
@@ -18,7 +20,9 @@ export default class Background extends HTMLElement {
 		this.shadow.innerHTML = `
 			<style>
 				:host{
-					display: inline-block;
+					pointer-events: none;
+
+					display: block;
 					width: 100%;
 					height: 100%;
 					max-width: 100dvw;
@@ -52,6 +56,7 @@ export default class Background extends HTMLElement {
 
 
 		this.#init_canvas();
+		this.#style_parent_element();
 		this.#load_version_file();
 	}
 
@@ -68,6 +73,27 @@ export default class Background extends HTMLElement {
 			this.canvas.width = window.innerWidth;
 			this.canvas.height = window.innerHeight;
 		});
+	}
+
+	#style_parent_element = ()=>{
+		if (!( "parent_selector" in this.#JSON)) return;
+
+		const parent_element = document.querySelector(this.#JSON["parent_selector"]);
+
+		if (!parent_element) return;
+
+		this.shadow.querySelector('style').textContent += `
+			:host{
+				position: absolute;
+				inset: 0;
+				${"z_index" in this.#JSON ? `z-index: ${this.#JSON["z_index"]};` : ''}
+			}
+		`;
+
+		parent_element.style = `
+			position: relative;
+			overflow: hidden;
+		`;
 	}
 
 	#load_version_file = async ()=>{
