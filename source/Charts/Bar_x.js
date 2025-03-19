@@ -38,7 +38,7 @@
 // 			{
 // 				"label": "woXrooX",
 // 				"value": 150,
-// 				"path": "/path/to/file"
+// 				"file_path": "/path/to/file"
 // 			},
 // 			{
 // 				"label": "Connexion",
@@ -433,16 +433,8 @@ export default class Bar_x extends HTMLElement {
 				let text = `${bar["label"]}: ${bar["display_value"]}`;
 
 				if(bar["file_path"] != null){
-					let img_x = x;
-					let img_y = bar["y"] + this.#bar_width/2 - this.#file_width/2;
-					x = x + this.#file_width * 1.5;
-
-					this.#ctx.imageSmoothingEnabled = true;
-					this.#ctx.imageSmoothingQuality = 'high';
-
-					const img = new Image();
-					img.onload = ()=> this.#ctx.drawImage(img, img_x, img_y, this.#file_width, this.#file_height);
-					img.src = bar["file_path"];
+					this.#draw_image(x, y, bar["file_path"]);
+					x = x + this.#file_width * 1.2;
 				}
 
 				this.#ctx.textAlign = "left";
@@ -461,16 +453,8 @@ export default class Bar_x extends HTMLElement {
 				let y = bar["y"] + this.#bar_width/2;
 
 				if(bar["file_path"] != null){
-					let img_x = this.#padding;
-					let img_y = bar["y"] + this.#bar_width/2 - this.#file_width/2;
-					x = x + this.#file_width * 1.5;
-
-					this.#ctx.imageSmoothingEnabled = true;
-					this.#ctx.imageSmoothingQuality = 'high';
-
-					const img = new Image();
-					img.onload = ()=> this.#ctx.drawImage(img, img_x, img_y, this.#file_width, this.#file_height);
-					img.src = bar["file_path"];
+					this.#draw_image(x, y, bar["file_path"]);
+					x = x + this.#file_width * 1.2;
 				}
 
 				this.#ctx.textAlign = "left";
@@ -479,6 +463,19 @@ export default class Bar_x extends HTMLElement {
 
 				y += this.#bar_width;
 			}
+	}
+
+	// Helper function for #draw_y_axis_markers
+	// Draws images
+	#draw_image(x, y, file_path){
+		let image_y = y - this.#file_height / 2;
+
+		this.#ctx.imageSmoothingEnabled = true;
+		this.#ctx.imageSmoothingQuality = 'high';
+
+		const image = new Image();
+		image.onload = ()=> this.#ctx.drawImage(image, x, image_y, this.#file_width, this.#file_height);
+		image.src = file_path;
 	}
 
 	#draw_y_axis_grid_lines(){
@@ -521,3 +518,4 @@ export default class Bar_x extends HTMLElement {
 }
 
 window.customElements.define("x-bar-x-chart", Bar_x);
+
