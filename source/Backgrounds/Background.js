@@ -30,11 +30,6 @@ export default class Background extends HTMLElement {
 					max-width: 100dvw;
 					max-height: 100dvh;
 				}
-
-				canvas{
-					filter: blur(40px) contrast(150%);
-					opacity: 0.7;
-				}
 			</style>
 			<canvas></canvas>
 			<div></div>
