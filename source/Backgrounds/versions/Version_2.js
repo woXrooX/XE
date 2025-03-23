@@ -13,10 +13,18 @@ export default class Version_2 {
 		Version_2.#particles = [];
 		for (let i = 0; i < 15; i++) Version_2.#particles.push(new Particle(Version_2.#canvas));
 
+		Version_2.#set_up_canvas();
 		Version_2.#build();
 	}
 
 	/////////// Helpers
+
+	static #set_up_canvas(){
+		Version_2.#canvas.style = `
+			filter: blur(70px) contrast(120%) brightness(1.1);
+			opacity: 0.8;
+		`;
+	}
 
 	static #build() {
 		const time = Date.now() * 0.001;
