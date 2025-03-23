@@ -8,10 +8,18 @@ export default class Version_1 {
 		Version_1.#canvas = canvas;
 		Version_1.#ctx = ctx;
 
+		Version_1.#set_up_canvas();
 		Version_1.#build();
 	}
 
 	/////////// Helpers
+
+	static #set_up_canvas(){
+		Version_1.#canvas.style = `
+			filter: blur(40px) contrast(150%);
+			opacity: 0.7;
+		`;
+	}
 
 	static #build(){
 		Version_1.#ctx.clearRect(0, 0, Version_1.#canvas.width, Version_1.#canvas.height);
