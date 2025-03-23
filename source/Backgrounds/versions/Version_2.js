@@ -28,7 +28,6 @@ export default class Version_2 {
 
 	static #build() {
 		const time = Date.now() * 0.001;
-
 		Version_2.#ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
 		Version_2.#ctx.fillRect(0, 0, Version_2.#canvas.width, Version_2.#canvas.height);
 
@@ -39,7 +38,6 @@ export default class Version_2 {
 		}
 
 		// Use bind to maintain the correct context
-		// requestAnimationFrame(Version_2.#build.bind());
 		requestAnimationFrame(() => Version_2.#build());
 	}
 }
