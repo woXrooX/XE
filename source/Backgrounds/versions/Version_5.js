@@ -127,10 +127,7 @@ class Particle {
 
 	draw() {
 		// Professional-grade gradient with multiple stops for depth
-		const gradient = this.#ctx.createRadialGradient(
-			this.x, this.y, 0,
-			this.x, this.y, this.radius
-		);
+		const gradient = this.#ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
 
 		// Designer-crafted gradient with precise opacity and color transitions
 		gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, ${this.opacity * 0.6})`);
