@@ -1,7 +1,7 @@
 export default class Version_2 {
 	static #canvas = null;
 	static #ctx = null;
-	static #particles = [];
+	static #particle_objects = [];
 
 	/////////// APis
 
@@ -9,23 +9,23 @@ export default class Version_2 {
 		Version_2.#canvas = canvas;
 		Version_2.#ctx = ctx;
 
-		Version_2.#generate_particle();
 		Version_2.#set_up_canvas();
+		Version_2.#generate_particles();
 		Version_2.#build();
 	}
 
 	/////////// Helpers
-
-	static #generate_particle(){
-		Version_2.#particles = [];
-		for (let i = 0; i < 15; i++) Version_2.#particles.push(new Particle(Version_2.#canvas));
-	}
 
 	static #set_up_canvas(){
 		Version_2.#canvas.style = `
 			filter: blur(70px) contrast(120%) brightness(1.1);
 			opacity: 0.8;
 		`;
+	}
+
+	static #generate_particles(){
+		Version_2.#particle_objects = [];
+		for (let i = 0; i < 15; i++) Version_2.#particle_objects.push(new Particle(Version_2.#canvas, Version_2.#ctx));
 	}
 
 	static #build() {
@@ -40,16 +40,23 @@ export default class Version_2 {
 
 	static #draw_particles(){
 		const time = Date.now() * 0.001;
-		for (const particle of Version_2.#particles) {
-			particle.update(time, Version_2.#canvas);
-			particle.draw(Version_2.#ctx);
+		for (const particle of Version_2.#particle_objects) {
+			particle.update(time);
+			particle.draw();
 		}
 	}
 }
 
 class Particle {
-	constructor(canvas) {
-		this.reset(canvas);
+	#canvas = null;
+	#ctx = null;
+
+	constructor (canvas, ctx) {
+		this.#canvas = canvas;
+		this.#ctx = ctx;
+
+		this.#reset(this.#canvas);
+
 		// Much larger, varied radius for better blending
 		this.base_radius = Math.random() * 120 + 80;
 		this.radius_variation = Math.random() * 40 + 20;
@@ -63,21 +70,9 @@ class Particle {
 		this.hue = Math.random() * 360;
 	}
 
-	reset(canvas) {
-		this.x = Math.random() * canvas.width;
-		this.y = Math.random() * canvas.height;
+	/////////// APis
 
-		// Slower, more gentle movement
-		this.vx = (Math.random() - 0.5) * 0.8;
-		this.vy = (Math.random() - 0.5) * 0.8;
-
-		// More saturation and lightness variation for richer colors
-		this.hue = Math.random() * 360;
-		this.saturation = 70 + Math.random() * 20;
-		this.lightness = 50 + Math.random() * 20;
-	}
-
-	update(time, canvas) {
+	update(time) {
 		// Add slight organic waviness to motion
 		this.x += this.vx + Math.sin(time * 0.3 + this.phase_x) * this.amplitude * 0.2;
 		this.y += this.vy + Math.cos(time * 0.2 + this.phase_y) * this.amplitude * 0.2;
@@ -93,23 +88,39 @@ class Particle {
 		this.hue = (this.hue + this.color_shift) % 360;
 
 		// Wrap around screen edges for seamless movement
-		if (this.x < -this.radius) this.x = canvas.width + this.radius;
-		if (this.x > canvas.width + this.radius) this.x = -this.radius;
-		if (this.y < -this.radius) this.y = canvas.height + this.radius;
-		if (this.y > canvas.height + this.radius) this.y = -this.radius;
+		if (this.x < -this.radius) this.x = this.#canvas.width + this.radius;
+		if (this.x > this.#canvas.width + this.radius) this.x = -this.radius;
+		if (this.y < -this.radius) this.y = this.#canvas.height + this.radius;
+		if (this.y > this.#canvas.height + this.radius) this.y = -this.radius;
 	}
 
-	draw(ctx) {
+	draw() {
 		// Create a radial gradient for each particle
-		const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+		const gradient = this.#ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
 
 		gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.6)`);
 		gradient.addColorStop(0.6, `hsla(${(this.hue + 40) % 360}, ${this.saturation - 10}%, ${this.lightness - 5}%, 0.3)`);
 		gradient.addColorStop(1, `hsla(${(this.hue + 80) % 360}, ${this.saturation - 20}%, ${this.lightness - 10}%, 0)`);
 
-		ctx.beginPath();
-		ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-		ctx.fillStyle = gradient;
-		ctx.fill();
+		this.#ctx.beginPath();
+		this.#ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+		this.#ctx.fillStyle = gradient;
+		this.#ctx.fill();
+	}
+
+	/////////// Helpers
+
+	#reset() {
+		this.x = Math.random() * this.#canvas.width;
+		this.y = Math.random() * this.#canvas.height;
+
+		// Slower, more gentle movement
+		this.vx = (Math.random() - 0.5) * 0.8;
+		this.vy = (Math.random() - 0.5) * 0.8;
+
+		// More saturation and lightness variation for richer colors
+		this.hue = Math.random() * 360;
+		this.saturation = 70 + Math.random() * 20;
+		this.lightness = 50 + Math.random() * 20;
 	}
 }
