@@ -9,15 +9,17 @@ export default class Version_2 {
 		Version_2.#canvas = canvas;
 		Version_2.#ctx = ctx;
 
-		// Create particles
-		Version_2.#particles = [];
-		for (let i = 0; i < 15; i++) Version_2.#particles.push(new Particle(Version_2.#canvas));
-
+		Version_2.#generate_particle();
 		Version_2.#set_up_canvas();
 		Version_2.#build();
 	}
 
 	/////////// Helpers
+
+	static #generate_particle(){
+		Version_2.#particles = [];
+		for (let i = 0; i < 15; i++) Version_2.#particles.push(new Particle(Version_2.#canvas));
+	}
 
 	static #set_up_canvas(){
 		Version_2.#canvas.style = `
@@ -46,14 +48,14 @@ class Particle {
 	constructor(canvas) {
 		this.reset(canvas);
 		// Much larger, varied radius for better blending
-		this.baseRadius = Math.random() * 120 + 80;
-		this.radiusVariation = Math.random() * 40 + 20;
-		this.pulseSpeed = Math.random() * 0.02 + 0.01;
-		this.colorShift = Math.random() * 0.01 + 0.005;
+		this.base_radius = Math.random() * 120 + 80;
+		this.radius_variation = Math.random() * 40 + 20;
+		this.pulse_speed = Math.random() * 0.02 + 0.01;
+		this.color_shift = Math.random() * 0.01 + 0.005;
 
 		// Set unique phase for organic motion
-		this.phaseX = Math.random() * Math.PI * 2;
-		this.phaseY = Math.random() * Math.PI * 2;
+		this.phase_x = Math.random() * Math.PI * 2;
+		this.phase_y = Math.random() * Math.PI * 2;
 		this.amplitude = Math.random() * 2 + 1;
 		this.hue = Math.random() * 360;
 	}
@@ -67,27 +69,25 @@ class Particle {
 		this.vy = (Math.random() - 0.5) * 0.8;
 
 		// More saturation and lightness variation for richer colors
+		this.hue = Math.random() * 360;
 		this.saturation = 70 + Math.random() * 20;
 		this.lightness = 50 + Math.random() * 20;
-
-		this.life = 1;
-		this.hue = Math.random() * 360;
 	}
 
 	update(time, canvas) {
 		// Add slight organic waviness to motion
-		this.x += this.vx + Math.sin(time * 0.3 + this.phaseX) * this.amplitude * 0.2;
-		this.y += this.vy + Math.cos(time * 0.2 + this.phaseY) * this.amplitude * 0.2;
+		this.x += this.vx + Math.sin(time * 0.3 + this.phase_x) * this.amplitude * 0.2;
+		this.y += this.vy + Math.cos(time * 0.2 + this.phase_y) * this.amplitude * 0.2;
 
 		// Gentle friction
 		this.vx *= 0.99;
 		this.vy *= 0.99;
 
 		// Pulse the radius for organic feel
-		this.radius = this.baseRadius + Math.sin(time * this.pulseSpeed) * this.radiusVariation;
+		this.radius = this.base_radius + Math.sin(time * this.pulse_speed) * this.radius_variation;
 
 		// Shift colors over time
-		this.hue = (this.hue + this.colorShift) % 360;
+		this.hue = (this.hue + this.color_shift) % 360;
 
 		// Wrap around screen edges for seamless movement
 		if (this.x < -this.radius) this.x = canvas.width + this.radius;
