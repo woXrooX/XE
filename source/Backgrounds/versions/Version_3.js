@@ -1,4 +1,4 @@
-export default class Version_2 {
+export default class Version_3 {
 	static #canvas = null;
 	static #ctx = null;
 	static #particle_objects = [];
@@ -6,40 +6,40 @@ export default class Version_2 {
 	/////////// APis
 
 	static init(canvas, ctx) {
-		Version_2.#canvas = canvas;
-		Version_2.#ctx = ctx;
+		Version_3.#canvas = canvas;
+		Version_3.#ctx = ctx;
 
-		Version_2.#set_up_canvas();
-		Version_2.#generate_particles();
-		Version_2.#build();
+		Version_3.#set_up_canvas();
+		Version_3.#generate_particles();
+		Version_3.#build();
 	}
 
 	/////////// Helpers
 
 	static #set_up_canvas(){
-		Version_2.#canvas.style = `
-			filter: blur(70px) contrast(120%) brightness(1.1);
-			opacity: 0.8;
+		Version_3.#canvas.style = `
+			filter: blur(65px) contrast(130%) brightness(1.3);
+			opacity: 0.9;
 		`;
 	}
 
 	static #generate_particles(){
-		Version_2.#particle_objects = [];
-		for (let i = 0; i < 15; i++) Version_2.#particle_objects.push(new Particle(Version_2.#canvas, Version_2.#ctx));
+		Version_3.#particle_objects = [];
+		for (let i = 0; i < 40; i++) Version_3.#particle_objects.push(new Particle(Version_3.#canvas, Version_3.#ctx));
 	}
 
 	static #build() {
-		Version_2.#ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
-		Version_2.#ctx.fillRect(0, 0, Version_2.#canvas.width, Version_2.#canvas.height);
+		Version_3.#ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
+		Version_3.#ctx.fillRect(0, 0, Version_3.#canvas.width, Version_3.#canvas.height);
 
-		Version_2.#draw_particles();
+		Version_3.#draw_particles();
 
-		requestAnimationFrame(() => Version_2.#build());
+		requestAnimationFrame(() => Version_3.#build());
 	}
 
 	static #draw_particles(){
 		const time = Date.now() * 0.001;
-		for (const particle of Version_2.#particle_objects) {
+		for (const particle of Version_3.#particle_objects) {
 			particle.update(time);
 			particle.draw();
 		}
@@ -50,15 +50,15 @@ class Particle {
 	#canvas = null;
 	#ctx = null;
 
-	constructor (canvas, ctx) {
+	constructor(canvas, ctx) {
 		this.#canvas = canvas;
 		this.#ctx = ctx;
 
 		this.#reset();
 
-		// Much larger, varied radius for better blending
-		this.base_radius = Math.random() * 120 + 80;
-		this.radius_variation = Math.random() * 40 + 20;
+		// Larger radius with wider distribution to fill the canvas
+		this.base_radius = Math.random() * 150 + 120;
+		this.radius_variation = Math.random() * 50 + 30;
 		this.pulse_speed = Math.random() * 0.02 + 0.01;
 		this.color_shift = Math.random() * 0.01 + 0.005;
 
@@ -97,9 +97,9 @@ class Particle {
 		// Create a radial gradient for each particle
 		const gradient = this.#ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
 
-		gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.6)`);
-		gradient.addColorStop(0.6, `hsla(${(this.hue + 40) % 360}, ${this.saturation - 10}%, ${this.lightness - 5}%, 0.3)`);
-		gradient.addColorStop(1, `hsla(${(this.hue + 80) % 360}, ${this.saturation - 20}%, ${this.lightness - 10}%, 0)`);
+		gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.8)`);
+		gradient.addColorStop(0.6, `hsla(${(this.hue + 40) % 360}, ${this.saturation - 10}%, ${this.lightness - 5}%, 0.4)`);
+		gradient.addColorStop(1, `hsla(${(this.hue + 80) % 360}, ${this.saturation - 20}%, ${this.lightness - 10}%, 0.1)`);
 
 		this.#ctx.beginPath();
 		this.#ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
@@ -113,13 +113,13 @@ class Particle {
 		this.x = Math.random() * this.#canvas.width;
 		this.y = Math.random() * this.#canvas.height;
 
-		// Slower, more gentle movement
-		this.vx = (Math.random() - 0.5) * 0.8;
-		this.vy = (Math.random() - 0.5) * 0.8;
+		// Slower, gentle movement
+		this.vx = (Math.random() - 0.5) * 0.6;
+		this.vy = (Math.random() - 0.5) * 0.6;
 
-		// More saturation and lightness variation for richer colors
+		// Saturation and lightness variation for richer colors
 		this.hue = Math.random() * 360;
-		this.saturation = 70 + Math.random() * 20;
-		this.lightness = 50 + Math.random() * 20;
+		this.saturation = 85 + Math.random() * 15;
+		this.lightness = 55 + Math.random() * 25;
 	}
 }
