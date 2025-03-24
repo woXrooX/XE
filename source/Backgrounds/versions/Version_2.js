@@ -29,18 +29,21 @@ export default class Version_2 {
 	}
 
 	static #build() {
-		const time = Date.now() * 0.001;
 		Version_2.#ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
 		Version_2.#ctx.fillRect(0, 0, Version_2.#canvas.width, Version_2.#canvas.height);
 
-		// Update and draw particles
+		Version_2.#draw_particles();
+
+		// Use bind to maintain the correct context
+		requestAnimationFrame(() => Version_2.#build());
+	}
+
+	static #draw_particles(){
+		const time = Date.now() * 0.001;
 		for (const particle of Version_2.#particles) {
 			particle.update(time, Version_2.#canvas);
 			particle.draw(Version_2.#ctx);
 		}
-
-		// Use bind to maintain the correct context
-		requestAnimationFrame(() => Version_2.#build());
 	}
 }
 
@@ -98,10 +101,7 @@ class Particle {
 
 	draw(ctx) {
 		// Create a radial gradient for each particle
-		const gradient = ctx.createRadialGradient(
-			this.x, this.y, 0,
-			this.x, this.y, this.radius
-		);
+		const gradient = ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
 
 		gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.6)`);
 		gradient.addColorStop(0.6, `hsla(${(this.hue + 40) % 360}, ${this.saturation - 10}%, ${this.lightness - 5}%, 0.3)`);
