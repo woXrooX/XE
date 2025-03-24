@@ -57,7 +57,7 @@ class Particle {
 
 		this.#reset(this.#canvas);
 
-		// Much larger, varied radius for better blending
+		// Varied radius for better blending
 		this.base_radius = Math.random() * 120 + 80;
 		this.radius_variation = Math.random() * 40 + 20;
 		this.pulse_speed = Math.random() * 0.02 + 0.01;
@@ -114,11 +114,11 @@ class Particle {
 		this.x = Math.random() * this.#canvas.width;
 		this.y = Math.random() * this.#canvas.height;
 
-		// Slower, more gentle movement
+		// Gentle movement
 		this.vx = (Math.random() - 0.5) * 0.8;
 		this.vy = (Math.random() - 0.5) * 0.8;
 
-		// More saturation and lightness variation for richer colors
+		// Saturation and lightness variation for richer colors
 		this.hue = Math.random() * 360;
 		this.saturation = 70 + Math.random() * 20;
 		this.lightness = 50 + Math.random() * 20;
