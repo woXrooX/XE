@@ -221,7 +221,10 @@ export default class Carousel extends HTMLElement {
 	/// Helper
 	get_cards_array(){
 		const cards = [];
-		for (const child of this.children) if (!child.classList.contains('btn')) cards.push(child);
+		for (const child of this.children) if (!child.classList.contains('btn')){
+			child.style.flexShrink = '0';
+			cards.push(child);
+		}
 
 		return cards;
 	}
