@@ -11,7 +11,7 @@ export default class Version_3 {
 
 		Version_3.#set_up_canvas();
 		Version_3.#generate_particles();
-		Version_3.#build();
+		Version_3.#animate();
 	}
 
 	/////////// Helpers
@@ -28,13 +28,13 @@ export default class Version_3 {
 		for (let i = 0; i < 40; i++) Version_3.#particle_objects.push(new Particle(Version_3.#canvas, Version_3.#ctx));
 	}
 
-	static #build() {
+	static #animate() {
 		Version_3.#ctx.fillStyle = 'rgba(0, 0, 0, 0.02)';
 		Version_3.#ctx.fillRect(0, 0, Version_3.#canvas.width, Version_3.#canvas.height);
 
 		Version_3.#draw_particles();
 
-		requestAnimationFrame(() => Version_3.#build());
+		requestAnimationFrame(() => Version_3.#animate());
 	}
 
 	static #draw_particles(){
@@ -56,7 +56,7 @@ class Particle {
 
 		this.#reset();
 
-		// Larger radius with wider distribution to fill the canvas
+		// Radius with wider distribution to fill the canvas
 		this.base_radius = Math.random() * 150 + 120;
 		this.radius_variation = Math.random() * 50 + 30;
 		this.pulse_speed = Math.random() * 0.02 + 0.01;
@@ -95,7 +95,10 @@ class Particle {
 
 	draw() {
 		// Create a radial gradient for each particle
-		const gradient = this.#ctx.createRadialGradient(this.x, this.y, 0, this.x, this.y, this.radius);
+		const gradient = this.#ctx.createRadialGradient(
+			this.x, this.y, 0,
+			this.x, this.y, this.radius
+		);
 
 		gradient.addColorStop(0, `hsla(${this.hue}, ${this.saturation}%, ${this.lightness}%, 0.8)`);
 		gradient.addColorStop(0.6, `hsla(${(this.hue + 40) % 360}, ${this.saturation - 10}%, ${this.lightness - 5}%, 0.4)`);
@@ -110,10 +113,13 @@ class Particle {
 	/////////// Helpers
 
 	#reset() {
-		this.x = Math.random() * this.#canvas.width;
-		this.y = Math.random() * this.#canvas.height;
+		// Only reset position if constructor hasn't set it yet
+		if (this.x === undefined) {
+			this.x = Math.random() * this.#canvas.width;
+			this.y = Math.random() * this.#canvas.height;
+		}
 
-		// Slower, gentle movement
+		// Gentle movement
 		this.vx = (Math.random() - 0.5) * 0.6;
 		this.vy = (Math.random() - 0.5) * 0.6;
 

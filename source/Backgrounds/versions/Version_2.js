@@ -11,7 +11,7 @@ export default class Version_2 {
 
 		Version_2.#set_up_canvas();
 		Version_2.#generate_particles();
-		Version_2.#build();
+		Version_2.#animate();
 	}
 
 	/////////// Helpers
@@ -28,13 +28,13 @@ export default class Version_2 {
 		for (let i = 0; i < 15; i++) Version_2.#particle_objects.push(new Particle(Version_2.#canvas, Version_2.#ctx));
 	}
 
-	static #build() {
+	static #animate() {
 		Version_2.#ctx.fillStyle = 'rgba(0, 0, 0, 0.05)';
 		Version_2.#ctx.fillRect(0, 0, Version_2.#canvas.width, Version_2.#canvas.height);
 
 		Version_2.#draw_particles();
 
-		requestAnimationFrame(() => Version_2.#build());
+		requestAnimationFrame(() => Version_2.#animate());
 	}
 
 	static #draw_particles(){

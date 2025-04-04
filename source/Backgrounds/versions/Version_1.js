@@ -9,7 +9,7 @@ export default class Version_1 {
 		Version_1.#ctx = ctx;
 
 		Version_1.#set_up_canvas();
-		Version_1.#build();
+		Version_1.#animate();
 	}
 
 	/////////// Helpers
@@ -21,12 +21,12 @@ export default class Version_1 {
 		`;
 	}
 
-	static #build(){
+	static #animate(){
 		Version_1.#ctx.clearRect(0, 0, Version_1.#canvas.width, Version_1.#canvas.height);
 
 		Version_1.#build_flowing_color_background();
 
-		requestAnimationFrame(() => Version_1.#build());
+		requestAnimationFrame(() => Version_1.#animate());
 	}
 
 	static #build_flowing_color_background(){
