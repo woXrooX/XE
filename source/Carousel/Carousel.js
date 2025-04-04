@@ -8,7 +8,7 @@ export default class Carousel extends HTMLElement {
 
 	#offset = 0;
 	#gap = 0;
-	#resize_observer = null;
+	#resize_observer_object = null;
 	#card_width = 0;
 	#previous_button = null;
 	#next_button = null;
@@ -20,22 +20,21 @@ export default class Carousel extends HTMLElement {
 	constructor() { super(); }
 
 	connectedCallback() {
-		this.#calculations();
-		this.#init_observer();
-		this.#style_carousel();
+		this.#calculate_values();
+		this.#resize_observer();
+		this.#style_host();
 		this.#init_buttons();
 		this.#center_cards();
 		this.#start_auto_scroll();
 		this.#init_event_listeners();
-
 	}
 
 	disconnectedCallback() {
 		this.#stop_auto_scroll();
-		this.#resize_observer.disconnect();
+		this.#resize_observer_object.disconnect();
 	}
 
-	#calculations() {
+	#calculate_values() {
 		const computed_style = getComputedStyle(this);
 
 		this.cards = this.#generate_cards();
@@ -49,26 +48,32 @@ export default class Carousel extends HTMLElement {
 		this.#offset = Math.abs(this.#offset);
 	}
 
-	#init_observer() {
-		this.#resize_observer = new ResizeObserver(() => {
-			this.#card_width = this.cards[0].offsetWidth;
-			this.#gap = parseInt(getComputedStyle(this).gap);
+	#resize_observer() {
+		this.#resize_observer_object = new ResizeObserver(() => {
+			this.#calculate_values();
 			this.#center_cards();
 		});
-		this.#resize_observer.observe(this);
+
+		this.#resize_observer_object.observe(this);
 	}
 
-	#style_carousel() {
+	#style_host() {
 		this.style = `
 			display: flex;
 			overflow: hidden;
-			mask-image: linear-gradient(to right, rgba(0, 0, 0, 0), rgba(0, 0, 0, 1) 2%, rgba(0, 0, 0, 1) 98%, rgba(0, 0, 0, 0));
+			mask-image: linear-gradient(
+				to right,
+				rgba(0, 0, 0, 0),
+				rgba(0, 0, 0, 1) 2%,
+				rgba(0, 0, 0, 1) 98%,
+				rgba(0, 0, 0, 0)
+			);
 			position: relative;
 		`;
 	}
 
 	#init_buttons(){
-		previous_button: {
+		previous: {
 			this.#previous_button = document.createElement("button");
 			this.#previous_button.innerHTML = `
 				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
@@ -83,12 +88,12 @@ export default class Carousel extends HTMLElement {
 				transform: translateY(-50%);
 				opacity: 0;
 				transition: opacity 0.3s ease;
-				z-index: 5;
+				z-index: 4;
 			`;
 			this.appendChild(this.#previous_button);
 		}
 
-		next_button: {
+		next: {
 			this.#next_button = document.createElement("button");
 			this.#next_button.innerHTML = `
 				<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="white">
@@ -116,10 +121,10 @@ export default class Carousel extends HTMLElement {
 	}
 
 	#center_cards() {
-		for (const card of this.cards){
-			card.style.transition = 'none';
-			card.style.transform = `translateX(-${this.#offset}px)`;
-		}
+		for (const card of this.cards) card.style = `
+			transition: none;
+			transform: translateX(-${this.#offset}px);
+		`;
 	}
 
 	#start_auto_scroll() {
@@ -153,6 +158,65 @@ export default class Carousel extends HTMLElement {
 		this.#scroll_interval = null;
 	}
 
+	#handle_touch_start = (event) => {
+		if (!event.touches || event.touches.length === 0) return;
+
+		this.#stop_auto_scroll();
+		this.#touch_start_x = event.touches[0].clientX;
+
+		clearTimeout(this.#auto_scroll_timeout);
+		this.#auto_scroll_timeout = setTimeout(() => { this.#start_auto_scroll(); }, this.#auto_scroll_interval_after_touch);
+	}
+
+	#handle_touch_end = (event) => {
+		if (!event.changedTouches || event.changedTouches.length === 0) return;
+
+		const touch_end_x = event.changedTouches[0].clientX;
+		const delta_x = touch_end_x - this.#touch_start_x;
+
+		if (Math.abs(delta_x) > this.#swipe_threshold)
+			delta_x > 0 ? this.#scroll_to_previous_card() : this.#scroll_to_next_card();
+	}
+
+	#scroll_to_previous_card() {
+		if (this.#animating) return;
+		this.#animating = true;
+
+		const last_card = this.cards[this.cards.length - 1];
+		const clone = last_card.cloneNode(true);
+
+		clone.style.transform = `translateX(-${this.#offset + this.#card_width + this.#gap}px)`;
+		this.insertBefore(clone, this.cards[0]);
+
+		const initialOffset = this.#offset + this.#card_width + this.#gap;
+		this.cards = this.#generate_cards();
+
+		for (const card of this.cards) {
+			card.style.transition = 'none';
+			card.style.transform = `translateX(-${initialOffset}px)`;
+		}
+
+		// Force layout synchronization
+		void this.offsetWidth;
+
+		for (const card of this.cards) {
+			card.style.transition = `transform ${Carousel.#animation_duration}ms ease`;
+			card.style.transform = `translateX(-${this.#offset}px)`;
+		}
+
+		last_card.addEventListener("transitionend", () => {
+			this.removeChild(last_card);
+			this.cards = this.#generate_cards();
+
+			for (const card of this.cards) {
+				card.style.transition = 'none';
+				card.style.transform = `translateX(-${this.#offset}px)`;
+			}
+
+			this.#animating = false;
+		});
+	}
+
 	#scroll_to_next_card() {
 		if (this.#animating) return;
 		this.#animating = true;
@@ -184,70 +248,14 @@ export default class Carousel extends HTMLElement {
 				card.style.transition = 'none';
 				card.style.transform = `translateX(-${this.#offset}px)`;
 			}
+
 			this.#animating = false;
 		});
-	}
-
-	#scroll_to_previous_card() {
-		if (this.#animating) return;
-		this.#animating = true;
-
-		const last_card = this.cards[this.cards.length - 1];
-		const clone = last_card.cloneNode(true);
-
-		clone.style.transform = `translateX(-${this.#offset + this.#card_width + this.#gap}px)`;
-		this.insertBefore(clone, this.cards[0]);
-
-		const initialOffset = this.#offset + this.#card_width + this.#gap;
-		this.cards = this.#generate_cards();
-		for (const card of this.cards) {
-			card.style.transition = 'none';
-			card.style.transform = `translateX(-${initialOffset}px)`;
-		}
-
-		// Force layout synchronization
-		void this.offsetWidth;
-
-		for (const card of this.cards) {
-			card.style.transition = `transform ${Carousel.#animation_duration}ms ease`;
-			card.style.transform = `translateX(-${this.#offset}px)`;
-		}
-
-		last_card.addEventListener("transitionend", () => {
-			this.removeChild(last_card);
-			this.cards = this.#generate_cards();
-
-			for (const card of this.cards) {
-				card.style.transition = 'none';
-				card.style.transform = `translateX(-${this.#offset}px)`;
-			}
-			this.#animating = false;
-		});
-	}
-
-	#handle_touch_start = (event) => {
-		if (!event.touches || event.touches.length === 0) return;
-
-		this.#stop_auto_scroll();
-		this.#touch_start_x = event.touches[0].clientX;
-
-		clearTimeout(this.#auto_scroll_timeout);
-		this.#auto_scroll_timeout = setTimeout(() => { this.#start_auto_scroll(); }, this.#auto_scroll_interval_after_touch);
-	}
-
-	#handle_touch_end = (event) => {
-		if (!event.changedTouches || event.changedTouches.length === 0) return;
-
-		const touch_end_x = event.changedTouches[0].clientX;
-		const delta_x = touch_end_x - this.#touch_start_x;
-
-		if (Math.abs(delta_x) > this.#swipe_threshold)
-			delta_x > 0 ? this.#scroll_to_previous_card() : this.#scroll_to_next_card();
 	}
 
 	#generate_cards() {
 		const cards = [];
-		for (const child of this.children) 
+		for (const child of this.children)
 			if (!child.classList.contains('btn')) {
 				child.style.flexShrink = '0';
 				cards.push(child);
@@ -258,4 +266,3 @@ export default class Carousel extends HTMLElement {
 }
 
 window.customElements.define('x-carousel', Carousel);
-
