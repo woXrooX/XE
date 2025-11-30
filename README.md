@@ -1,3 +1,5 @@
+This repository is no longer maintained. Development has been moved to woXrooX/x as a subproject.
+
 # XE - X-Elements
 
 #### Web Components Lib For Better UI/UX/DX
